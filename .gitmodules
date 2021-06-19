@@ -1,0 +1,3 @@
+[submodule "nyancore"]
+	path = nyancore
+	url = git@github.com:Black-Cat/nyancore.git
