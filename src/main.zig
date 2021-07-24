@@ -12,6 +12,9 @@ pub fn main() !void {
     var ui: UI = undefined;
     ui.init();
 
+    try renderer.renderCtx.append(&ui.nyanui.system);
+    try renderer.renderFns.append(nyan.UI.render);
+
     const systems: []*nyan.System = &[_]*nyan.System{
         &renderer.system,
         &ui.nyanui.system,
