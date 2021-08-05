@@ -12,12 +12,38 @@ const mainColors = [_]nc.ImVec4{
 pub const UI = struct {
     nyanui: nyan.UI,
 
+    dockspace: nyan.Widgets.DockSpace,
+
     pub fn init(self: *UI) void {
         self.nyanui.init("Nyan UI");
         self.nyanui.paletteFn = UI.palette;
+
+        self.dockspace.init("DockSpace", initLayout);
+        self.nyanui.dockspace = &self.dockspace;
     }
 
-    pub fn deinit(self: *UI) void {}
+    pub fn deinit(self: *UI) void {
+        self.dockspace.deinit();
+    }
+
+    fn initLayout(main_id: nc.ImGuiID) void {
+        var dock_main_id: nc.ImGuiID = main_id;
+
+        var dock_id_left_top: nc.ImGuiID = nc.igDockBuilderSplitNode(dock_main_id, nc.ImGuiDir_Left, 0.2, null, &dock_main_id);
+        var dock_id_left_bottom: nc.ImGuiID = nc.igDockBuilderSplitNode(dock_id_left_top, nc.ImGuiDir_Down, 0.5, null, &dock_id_left_top);
+        var dock_id_right: nc.ImGuiID = nc.igDockBuilderSplitNode(dock_main_id, nc.ImGuiDir_Right, 0.2, null, &dock_main_id);
+        var dock_id_bottom_left: nc.ImGuiID = nc.igDockBuilderSplitNode(dock_main_id, nc.ImGuiDir_Down, 0.2, null, &dock_main_id);
+        var dock_id_bottom_right: nc.ImGuiID = nc.igDockBuilderSplitNode(dock_id_bottom_left, nc.ImGuiDir_Right, 0.5, null, &dock_id_bottom_left);
+
+        nc.igDockBuilderDockWindow("ViewportSpace", dock_main_id);
+        nc.igDockBuilderDockWindow("SceneTree", dock_id_left_top);
+        nc.igDockBuilderDockWindow("Materials", dock_id_left_bottom);
+        nc.igDockBuilderDockWindow("Inspector", dock_id_right);
+        nc.igDockBuilderDockWindow("Console", dock_id_bottom_left);
+        nc.igDockBuilderDockWindow("Monitor", dock_id_bottom_right);
+
+        nc.igDockBuilderFinish(main_id);
+    }
 
     fn palette(col: nc.ImGuiCol_) nc.ImVec4 {
         return switch (@enumToInt(col)) {
