@@ -1,6 +1,8 @@
 const nyan = @import("nyancore");
 const nc = nyan.c;
+
 const Allocator = @import("std").mem.Allocator;
+const drawAboutDialog = @import("about.zig").drawAboutDialog;
 
 const mainColors = [_]nc.ImVec4{
     .{ .x = 0.251, .y = 0.471, .z = 0.435, .w = 1.0 }, // Viridian
@@ -9,6 +11,12 @@ const mainColors = [_]nc.ImVec4{
     .{ .x = 0.306, .y = 0.341, .z = 0.259, .w = 1.0 }, // Gray-Asparagus
     .{ .x = 0.173, .y = 0.353, .z = 0.333, .w = 1.0 }, // Dark Slate Gray
 };
+
+fn mainColorWithTransparency(ind: usize, transparency: f32) nc.ImVec4 {
+    var col = mainColors[ind];
+    col.w = transparency;
+    return col;
+}
 
 pub const UI = struct {
     nyanui: nyan.UI,
@@ -25,8 +33,8 @@ pub const UI = struct {
         self.nyanui.dockspace = &self.dockspace;
 
         self.windows = [_]nyan.Widgets.DummyWindow{undefined} ** 6;
-        self.windows[0].init("ViewportSpace", allocator);
-        self.windows[1].init("SceneTree", allocator);
+        self.windows[0].init("Viewport Space", allocator);
+        self.windows[1].init("Scene Tree", allocator);
         self.windows[2].init("Materials", allocator);
         self.windows[3].init("Inspector", allocator);
         self.windows[4].init("Console", allocator);
@@ -46,8 +54,8 @@ pub const UI = struct {
         var dock_id_bottom_left: nc.ImGuiID = nc.igDockBuilderSplitNode(dock_main_id, nc.ImGuiDir_Down, 0.2, null, &dock_main_id);
         var dock_id_bottom_right: nc.ImGuiID = nc.igDockBuilderSplitNode(dock_id_bottom_left, nc.ImGuiDir_Right, 0.5, null, &dock_id_bottom_left);
 
-        nc.igDockBuilderDockWindow("ViewportSpace", dock_main_id);
-        nc.igDockBuilderDockWindow("SceneTree", dock_id_left_top);
+        nc.igDockBuilderDockWindow("Viewport Space", dock_main_id);
+        nc.igDockBuilderDockWindow("Scene Tree", dock_id_left_top);
         nc.igDockBuilderDockWindow("Materials", dock_id_left_bottom);
         nc.igDockBuilderDockWindow("Inspector", dock_id_right);
         nc.igDockBuilderDockWindow("Console", dock_id_bottom_left);
@@ -56,9 +64,33 @@ pub const UI = struct {
         nc.igDockBuilderFinish(main_id);
     }
 
+    fn drawMenuBar(self: *UI) void {
+        var open_about_popup: bool = false;
+        if (nc.igBeginMenuBar()) {
+            if (nc.igBeginMenu("Windows", true)) {
+                for (self.windows) |*w|
+                    _ = nc.igMenuItem_BoolPtr(w.window.strId, "", &w.window.open, true);
+                nc.igEndMenu();
+            }
+
+            if (nc.igBeginMenu("About", true)) {
+                open_about_popup = true;
+                nc.igEndMenu();
+            }
+
+            nc.igEndMenuBar();
+        }
+
+        if (open_about_popup)
+            nc.igOpenPopup("About", nc.ImGuiPopupFlags_None);
+
+        drawAboutDialog();
+    }
+
     fn draw(nyanui: *nyan.UI) void {
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
 
+        self.drawMenuBar();
         for (self.windows) |*w|
             w.draw();
     }
@@ -86,7 +118,7 @@ pub const UI = struct {
             nc.ImGuiCol_CheckMark => mainColors[0],
             nc.ImGuiCol_SliderGrab => mainColors[2],
             nc.ImGuiCol_SliderGrabActive => mainColors[2],
-            nc.ImGuiCol_Button => mainColors[2],
+            nc.ImGuiCol_Button => mainColors[0],
             nc.ImGuiCol_ButtonHovered => mainColors[3],
             nc.ImGuiCol_ButtonActive => mainColors[2],
             nc.ImGuiCol_Header => mainColors[4],
@@ -117,7 +149,7 @@ pub const UI = struct {
             nc.ImGuiCol_NavHighlight => mainColors[0],
             nc.ImGuiCol_NavWindowingHighlight => mainColors[1],
             nc.ImGuiCol_NavWindowingDimBg => mainColors[3],
-            nc.ImGuiCol_ModalWindowDimBg => mainColors[2],
+            nc.ImGuiCol_ModalWindowDimBg => mainColorWithTransparency(2, 0.5),
             else => @panic("Unknown Style"),
         };
     }
