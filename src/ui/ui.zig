@@ -1,5 +1,6 @@
 const nyan = @import("nyancore");
 const nc = nyan.c;
+const Allocator = @import("std").mem.Allocator;
 
 const mainColors = [_]nc.ImVec4{
     .{ .x = 0.251, .y = 0.471, .z = 0.435, .w = 1.0 }, // Viridian
@@ -13,13 +14,23 @@ pub const UI = struct {
     nyanui: nyan.UI,
 
     dockspace: nyan.Widgets.DockSpace,
+    windows: [6]nyan.Widgets.DummyWindow,
 
-    pub fn init(self: *UI) void {
+    pub fn init(self: *UI, allocator: *Allocator) void {
         self.nyanui.init("Nyan UI");
         self.nyanui.paletteFn = UI.palette;
+        self.nyanui.drawFn = UI.draw;
 
         self.dockspace.init("DockSpace", initLayout);
         self.nyanui.dockspace = &self.dockspace;
+
+        self.windows = [_]nyan.Widgets.DummyWindow{undefined} ** 6;
+        self.windows[0].init("ViewportSpace", allocator);
+        self.windows[1].init("SceneTree", allocator);
+        self.windows[2].init("Materials", allocator);
+        self.windows[3].init("Inspector", allocator);
+        self.windows[4].init("Console", allocator);
+        self.windows[5].init("Monitor", allocator);
     }
 
     pub fn deinit(self: *UI) void {
@@ -45,6 +56,13 @@ pub const UI = struct {
         nc.igDockBuilderFinish(main_id);
     }
 
+    fn draw(nyanui: *nyan.UI) void {
+        const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
+
+        for (self.windows) |*w|
+            w.draw();
+    }
+
     fn palette(col: nc.ImGuiCol_) nc.ImVec4 {
         return switch (@enumToInt(col)) {
             nc.ImGuiCol_Text => mainColors[4],
@@ -57,9 +75,9 @@ pub const UI = struct {
             nc.ImGuiCol_FrameBg => mainColors[2],
             nc.ImGuiCol_FrameBgHovered => mainColors[1],
             nc.ImGuiCol_FrameBgActive => mainColors[0],
-            nc.ImGuiCol_TitleBg => mainColors[3],
-            nc.ImGuiCol_TitleBgActive => mainColors[4],
-            nc.ImGuiCol_TitleBgCollapsed => mainColors[0],
+            nc.ImGuiCol_TitleBg => mainColors[2],
+            nc.ImGuiCol_TitleBgActive => mainColors[0],
+            nc.ImGuiCol_TitleBgCollapsed => mainColors[3],
             nc.ImGuiCol_MenuBarBg => mainColors[2],
             nc.ImGuiCol_ScrollbarBg => mainColors[2],
             nc.ImGuiCol_ScrollbarGrab => mainColors[4],
@@ -71,7 +89,7 @@ pub const UI = struct {
             nc.ImGuiCol_Button => mainColors[2],
             nc.ImGuiCol_ButtonHovered => mainColors[3],
             nc.ImGuiCol_ButtonActive => mainColors[2],
-            nc.ImGuiCol_Header => mainColors[0],
+            nc.ImGuiCol_Header => mainColors[4],
             nc.ImGuiCol_HeaderHovered => mainColors[0],
             nc.ImGuiCol_HeaderActive => mainColors[4],
             nc.ImGuiCol_Separator => mainColors[3],
@@ -80,11 +98,11 @@ pub const UI = struct {
             nc.ImGuiCol_ResizeGrip => mainColors[3],
             nc.ImGuiCol_ResizeGripHovered => mainColors[2],
             nc.ImGuiCol_ResizeGripActive => mainColors[3],
-            nc.ImGuiCol_Tab => mainColors[0],
-            nc.ImGuiCol_TabHovered => mainColors[3],
-            nc.ImGuiCol_TabActive => mainColors[3],
-            nc.ImGuiCol_TabUnfocused => mainColors[3],
-            nc.ImGuiCol_TabUnfocusedActive => mainColors[3],
+            nc.ImGuiCol_Tab => mainColors[1],
+            nc.ImGuiCol_TabHovered => mainColors[0],
+            nc.ImGuiCol_TabActive => mainColors[2],
+            nc.ImGuiCol_TabUnfocused => mainColors[2],
+            nc.ImGuiCol_TabUnfocusedActive => mainColors[1],
             nc.ImGuiCol_PlotLines => mainColors[4],
             nc.ImGuiCol_PlotLinesHovered => mainColors[0],
             nc.ImGuiCol_PlotHistogram => mainColors[1],
