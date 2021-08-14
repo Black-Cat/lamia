@@ -3,6 +3,8 @@ const nc = nyan.c;
 
 const Allocator = @import("std").mem.Allocator;
 const drawAboutDialog = @import("about.zig").drawAboutDialog;
+
+const Console = @import("widgets/console.zig").Console;
 const Monitor = @import("widgets/monitor.zig").Monitor;
 
 const mainColors = [_]nc.ImVec4{
@@ -23,40 +25,47 @@ pub const UI = struct {
     nyanui: nyan.UI,
 
     dockspace: nyan.Widgets.DockSpace,
-    dummy_windows: [5]nyan.Widgets.DummyWindow,
+    dummy_windows: [4]nyan.Widgets.DummyWindow,
     windows: [6]*nyan.Widgets.Window,
 
+    console: Console,
     monitor: Monitor,
 
     pub fn init(self: *UI, allocator: *Allocator) void {
         self.nyanui.init("Nyan UI");
         self.nyanui.paletteFn = UI.palette;
         self.nyanui.drawFn = UI.draw;
+        self.nyanui.deinitFn = UI.deinit;
+        self.nyanui.initFn = UI.initWindows;
 
         self.dockspace.init("DockSpace", initLayout);
         self.nyanui.dockspace = &self.dockspace;
 
+        self.console.init();
         self.monitor.init();
 
-        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 5;
+        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 4;
         self.dummy_windows[0].init("Viewport Space", allocator);
         self.dummy_windows[1].init("Scene Tree", allocator);
         self.dummy_windows[2].init("Materials", allocator);
         self.dummy_windows[3].init("Inspector", allocator);
-        self.dummy_windows[4].init("Console", allocator);
 
         self.windows[0] = &self.dummy_windows[0].window;
         self.windows[1] = &self.dummy_windows[1].window;
         self.windows[2] = &self.dummy_windows[2].window;
         self.windows[3] = &self.dummy_windows[3].window;
-        self.windows[4] = &self.dummy_windows[4].window;
+        self.windows[4] = &self.console.window;
         self.windows[5] = &self.monitor.window;
+    }
 
+    fn initWindows(nyanui: *nyan.UI) void {
+        const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
         for (self.windows) |w|
             w.widget.init(&w.widget);
     }
 
-    pub fn deinit(self: *UI) void {
+    fn deinit(nyanui: *nyan.UI) void {
+        const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
         for (self.windows) |w|
             w.widget.deinit(&w.widget);
 

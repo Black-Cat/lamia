@@ -1,6 +1,5 @@
 const nyan = @import("nyancore");
 const nc = nyan.c;
-const config = nyan.global_config;
 const std = @import("std");
 const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
@@ -20,25 +19,31 @@ pub const Monitor = struct {
     frame_times: [frame_time_count]f32 = [_]f32{0.0} ** frame_time_count,
 
     pub fn init(self: *Monitor) void {
-        const open: bool = std.mem.eql(u8, config.map.get(config_key_open) orelse "1", "1");
         self.window = .{
             .widget = .{
                 .init = windowInit,
                 .deinit = windowDeinit,
                 .draw = windowDraw,
             },
-            .open = open,
+            .open = false,
             .strId = "Monitor",
         };
         self.current_frame = 0;
     }
 
-    pub fn deinit(self: *Monitor) void {
-        config.map.put(config_key_open, if (self.open) "1" else "0");
-    }
+    pub fn deinit(self: *Monitor) void {}
 
-    fn windowInit(widget: *Widget) void {}
-    fn windowDeinit(widget: *Widget) void {}
+    fn windowInit(widget: *Widget) void {
+        const window: *Window = @fieldParentPtr(Window, "widget", widget);
+        const self: *Monitor = @fieldParentPtr(Monitor, "window", window);
+        const open: bool = std.mem.eql(u8, nyan.app.config.map.get(config_key_open) orelse "1", "1");
+        self.window.open = open;
+    }
+    fn windowDeinit(widget: *Widget) void {
+        const window: *Window = @fieldParentPtr(Window, "widget", widget);
+        const self: *Monitor = @fieldParentPtr(Monitor, "window", window);
+        nyan.app.config.map.put(config_key_open, if (self.window.open) "1" else "0") catch unreachable;
+    }
     fn windowDraw(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *Monitor = @fieldParentPtr(Monitor, "window", window);
