@@ -3,6 +3,7 @@ const nc = nyan.c;
 
 const Allocator = @import("std").mem.Allocator;
 const drawAboutDialog = @import("about.zig").drawAboutDialog;
+const Monitor = @import("widgets/monitor.zig").Monitor;
 
 const mainColors = [_]nc.ImVec4{
     .{ .x = 0.251, .y = 0.471, .z = 0.435, .w = 1.0 }, // Viridian
@@ -22,7 +23,10 @@ pub const UI = struct {
     nyanui: nyan.UI,
 
     dockspace: nyan.Widgets.DockSpace,
-    windows: [6]nyan.Widgets.DummyWindow,
+    dummy_windows: [5]nyan.Widgets.DummyWindow,
+    windows: [6]*nyan.Widgets.Window,
+
+    monitor: Monitor,
 
     pub fn init(self: *UI, allocator: *Allocator) void {
         self.nyanui.init("Nyan UI");
@@ -32,16 +36,30 @@ pub const UI = struct {
         self.dockspace.init("DockSpace", initLayout);
         self.nyanui.dockspace = &self.dockspace;
 
-        self.windows = [_]nyan.Widgets.DummyWindow{undefined} ** 6;
-        self.windows[0].init("Viewport Space", allocator);
-        self.windows[1].init("Scene Tree", allocator);
-        self.windows[2].init("Materials", allocator);
-        self.windows[3].init("Inspector", allocator);
-        self.windows[4].init("Console", allocator);
-        self.windows[5].init("Monitor", allocator);
+        self.monitor.init();
+
+        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 5;
+        self.dummy_windows[0].init("Viewport Space", allocator);
+        self.dummy_windows[1].init("Scene Tree", allocator);
+        self.dummy_windows[2].init("Materials", allocator);
+        self.dummy_windows[3].init("Inspector", allocator);
+        self.dummy_windows[4].init("Console", allocator);
+
+        self.windows[0] = &self.dummy_windows[0].window;
+        self.windows[1] = &self.dummy_windows[1].window;
+        self.windows[2] = &self.dummy_windows[2].window;
+        self.windows[3] = &self.dummy_windows[3].window;
+        self.windows[4] = &self.dummy_windows[4].window;
+        self.windows[5] = &self.monitor.window;
+
+        for (self.windows) |w|
+            w.widget.init(&w.widget);
     }
 
     pub fn deinit(self: *UI) void {
+        for (self.windows) |w|
+            w.widget.deinit(&w.widget);
+
         self.dockspace.deinit();
     }
 
@@ -68,8 +86,8 @@ pub const UI = struct {
         var open_about_popup: bool = false;
         if (nc.igBeginMenuBar()) {
             if (nc.igBeginMenu("Windows", true)) {
-                for (self.windows) |*w|
-                    _ = nc.igMenuItem_BoolPtr(w.window.strId, "", &w.window.open, true);
+                for (self.windows) |w|
+                    _ = nc.igMenuItem_BoolPtr(w.strId, "", &w.open, true);
                 nc.igEndMenu();
             }
 
@@ -91,13 +109,13 @@ pub const UI = struct {
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
 
         self.drawMenuBar();
-        for (self.windows) |*w|
-            w.draw();
+        for (self.windows) |w|
+            w.widget.draw(&w.widget);
     }
 
     fn palette(col: nc.ImGuiCol_) nc.ImVec4 {
         return switch (@enumToInt(col)) {
-            nc.ImGuiCol_Text => mainColors[4],
+            nc.ImGuiCol_Text => mainColors[0],
             nc.ImGuiCol_TextDisabled => mainColors[1],
             nc.ImGuiCol_WindowBg => mainColors[1],
             nc.ImGuiCol_ChildBg => mainColors[3],
