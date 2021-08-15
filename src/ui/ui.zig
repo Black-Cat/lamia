@@ -28,6 +28,9 @@ pub const UI = struct {
     dummy_windows: [4]nyan.Widgets.DummyWindow,
     windows: [6]*nyan.Widgets.Window,
 
+    nyanui_system_init_fn: fn (system: *nyan.System, app: *nyan.Application) void,
+    nyanui_system_deinit_fn: fn (system: *nyan.System) void,
+
     console: Console,
     monitor: Monitor,
 
@@ -35,8 +38,12 @@ pub const UI = struct {
         self.nyanui.init("Nyan UI");
         self.nyanui.paletteFn = UI.palette;
         self.nyanui.drawFn = UI.draw;
-        self.nyanui.deinitFn = UI.deinit;
-        self.nyanui.initFn = UI.initWindows;
+
+        self.nyanui_system_init_fn = self.nyanui.system.init;
+        self.nyanui.system.init = systemInit;
+
+        self.nyanui_system_deinit_fn = self.nyanui.system.deinit;
+        self.nyanui.system.deinit = systemDeinit;
 
         self.dockspace.init("DockSpace", initLayout);
         self.nyanui.dockspace = &self.dockspace;
@@ -58,18 +65,26 @@ pub const UI = struct {
         self.windows[5] = &self.monitor.window;
     }
 
-    fn initWindows(nyanui: *nyan.UI) void {
+    fn systemInit(system: *nyan.System, app: *nyan.Application) void {
+        const nyanui: *nyan.UI = @fieldParentPtr(nyan.UI, "system", system);
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
+
+        self.nyanui_system_init_fn(system, app);
+
         for (self.windows) |w|
             w.widget.init(&w.widget);
     }
 
-    fn deinit(nyanui: *nyan.UI) void {
+    fn systemDeinit(system: *nyan.System) void {
+        const nyanui: *nyan.UI = @fieldParentPtr(nyan.UI, "system", system);
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
+
         for (self.windows) |w|
             w.widget.deinit(&w.widget);
 
         self.dockspace.deinit();
+
+        self.nyanui_system_deinit_fn(system);
     }
 
     fn initLayout(main_id: nc.ImGuiID) void {
