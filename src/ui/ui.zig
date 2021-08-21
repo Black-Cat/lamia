@@ -6,6 +6,7 @@ const drawAboutDialog = @import("about.zig").drawAboutDialog;
 
 const Console = @import("widgets/console.zig").Console;
 const Monitor = @import("widgets/monitor.zig").Monitor;
+const SceneTree = @import("widgets/scene_tree.zig").SceneTree;
 
 const mainColors = [_]nc.ImVec4{
     .{ .x = 0.251, .y = 0.471, .z = 0.435, .w = 1.0 }, // Viridian
@@ -25,7 +26,7 @@ pub const UI = struct {
     nyanui: nyan.UI,
 
     dockspace: nyan.Widgets.DockSpace,
-    dummy_windows: [4]nyan.Widgets.DummyWindow,
+    dummy_windows: [3]nyan.Widgets.DummyWindow,
     windows: [6]*nyan.Widgets.Window,
 
     nyanui_system_init_fn: fn (system: *nyan.System, app: *nyan.Application) void,
@@ -33,6 +34,7 @@ pub const UI = struct {
 
     console: Console,
     monitor: Monitor,
+    scene_tree: SceneTree,
 
     pub fn init(self: *UI, allocator: *Allocator) void {
         self.nyanui.init("Nyan UI");
@@ -50,17 +52,17 @@ pub const UI = struct {
 
         self.console.init();
         self.monitor.init();
+        self.scene_tree.init();
 
-        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 4;
+        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 3;
         self.dummy_windows[0].init("Viewport Space", allocator);
-        self.dummy_windows[1].init("Scene Tree", allocator);
-        self.dummy_windows[2].init("Materials", allocator);
-        self.dummy_windows[3].init("Inspector", allocator);
+        self.dummy_windows[1].init("Materials", allocator);
+        self.dummy_windows[2].init("Inspector", allocator);
 
         self.windows[0] = &self.dummy_windows[0].window;
         self.windows[1] = &self.dummy_windows[1].window;
         self.windows[2] = &self.dummy_windows[2].window;
-        self.windows[3] = &self.dummy_windows[3].window;
+        self.windows[3] = &self.scene_tree.window;
         self.windows[4] = &self.console.window;
         self.windows[5] = &self.monitor.window;
     }
