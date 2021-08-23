@@ -18,7 +18,7 @@ pub const SceneNode = struct {
     }
 
     pub fn setName(self: *SceneNode, name: []const u8) void {
-        @memcpy(@ptrCast([*]u8, &self.name[0]), name.ptr, name.len);
+        @memcpy(@ptrCast([*]u8, &self.name[0]), name.ptr, name.len + 1);
     }
 
     pub fn add(self: *SceneNode) *SceneNode {
@@ -26,5 +26,9 @@ pub const SceneNode = struct {
         new_node.* = nyan.app.allocator.create(SceneNode) catch unreachable;
         new_node.*.init("New Node");
         return new_node.*;
+    }
+
+    pub fn childrenCount(self: *SceneNode) usize {
+        return self.children.items.len;
     }
 };
