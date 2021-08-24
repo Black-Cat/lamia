@@ -3,8 +3,10 @@ const nc = nyan.c;
 
 const Allocator = @import("std").mem.Allocator;
 const drawAboutDialog = @import("about.zig").drawAboutDialog;
+const SceneNode = @import("../scene/scene_node.zig").SceneNode;
 
 const Console = @import("widgets/console.zig").Console;
+const Inspector = @import("widgets/inspector.zig").Inspector;
 const Monitor = @import("widgets/monitor.zig").Monitor;
 const SceneTree = @import("widgets/scene_tree.zig").SceneTree;
 
@@ -26,15 +28,18 @@ pub const UI = struct {
     nyanui: nyan.UI,
 
     dockspace: nyan.Widgets.DockSpace,
-    dummy_windows: [3]nyan.Widgets.DummyWindow,
+    dummy_windows: [2]nyan.Widgets.DummyWindow,
     windows: [6]*nyan.Widgets.Window,
 
     nyanui_system_init_fn: fn (system: *nyan.System, app: *nyan.Application) void,
     nyanui_system_deinit_fn: fn (system: *nyan.System) void,
 
     console: Console,
+    inspector: Inspector,
     monitor: Monitor,
     scene_tree: SceneTree,
+
+    selected_scene_node: ?*SceneNode,
 
     pub fn init(self: *UI, allocator: *Allocator) void {
         self.nyanui.init("Nyan UI");
@@ -50,18 +55,20 @@ pub const UI = struct {
         self.dockspace.init("DockSpace", initLayout);
         self.nyanui.dockspace = &self.dockspace;
 
-        self.console.init();
-        self.monitor.init();
-        self.scene_tree.init();
+        self.selected_scene_node = null;
 
-        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 3;
+        self.console.init();
+        self.inspector.init(&self.selected_scene_node);
+        self.monitor.init();
+        self.scene_tree.init(&self.selected_scene_node);
+
+        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 2;
         self.dummy_windows[0].init("Viewport Space", allocator);
         self.dummy_windows[1].init("Materials", allocator);
-        self.dummy_windows[2].init("Inspector", allocator);
 
         self.windows[0] = &self.dummy_windows[0].window;
         self.windows[1] = &self.dummy_windows[1].window;
-        self.windows[2] = &self.dummy_windows[2].window;
+        self.windows[2] = &self.inspector.window;
         self.windows[3] = &self.scene_tree.window;
         self.windows[4] = &self.console.window;
         self.windows[5] = &self.monitor.window;

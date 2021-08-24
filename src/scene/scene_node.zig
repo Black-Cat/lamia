@@ -2,7 +2,9 @@ const nyan = @import("nyancore");
 const std = @import("std");
 
 pub const SceneNode = struct {
-    name: [128]u8,
+    pub const NAME_SIZE: i32 = 128;
+
+    name: [NAME_SIZE]u8,
 
     children: std.ArrayList(*SceneNode),
 

@@ -12,9 +12,10 @@ pub const SceneTree = struct {
     window: nyan.Widgets.Window,
     main_scene: Scene,
 
+    selected_scene_node: *?*SceneNode,
     clicked_node: ?*SceneNode,
 
-    pub fn init(self: *SceneTree) void {
+    pub fn init(self: *SceneTree, selected_scene_node: *?*SceneNode) void {
         self.window = .{
             .widget = .{
                 .init = windowInit,
@@ -24,6 +25,8 @@ pub const SceneTree = struct {
             .open = false,
             .strId = "Scene Tree",
         };
+        self.selected_scene_node = selected_scene_node;
+        self.clicked_node = null;
     }
 
     pub fn deinit(self: *SceneTree) void {
@@ -66,16 +69,28 @@ pub const SceneTree = struct {
         node.init("New Node");
     }
 
+    fn addSelectedFlag(flag: nc.ImGuiTreeNodeFlags, node: *SceneNode, selected_node: ?*SceneNode) nc.ImGuiTreeNodeFlags {
+        if (node == selected_node)
+            return flag | nc.ImGuiTreeNodeFlags_Selected;
+        return flag;
+    }
+
     fn drawSceneLeaf(self: *SceneTree, node: *SceneNode) void {
-        const node_flags: nc.ImGuiTreeNodeFlags = nc.ImGuiTreeNodeFlags_Bullet;
+        const node_flags: nc.ImGuiTreeNodeFlags = addSelectedFlag(nc.ImGuiTreeNodeFlags_Bullet, node, self.selected_scene_node.*);
         const opened: bool = nc.igTreeNodeEx_Ptr(node, node_flags, &node.name);
+        if (nc.igIsItemClicked(0)) // LMB
+            self.clicked_node = node;
         if (opened)
             nc.igTreePop();
     }
 
     fn drawSceneNode(self: *SceneTree, node: *SceneNode) void {
-        const node_flags: nc.ImGuiTreeNodeFlags = nc.ImGuiTreeNodeFlags_OpenOnArrow;
+        const node_flags: nc.ImGuiTreeNodeFlags = addSelectedFlag(nc.ImGuiTreeNodeFlags_OpenOnArrow, node, self.selected_scene_node.*);
         const opened: bool = nc.igTreeNodeEx_Ptr(node, node_flags, &node.name);
+
+        if (nc.igIsItemClicked(0) and !nc.igIsItemToggledOpen()) // LMB
+            self.clicked_node = node;
+
         if (opened) {
             for (node.children.items) |child| {
                 if (child.childrenCount() > 0) {
@@ -99,12 +114,16 @@ pub const SceneTree = struct {
     }
 
     fn drawSceneHeirarchy(self: *SceneTree) void {
+        if (self.main_scene.root.childrenCount() == 0) {
+            nc.igText("Empty Scene");
+            return;
+        }
+
         self.clicked_node = null;
 
-        if (self.main_scene.root.childrenCount() > 0) {
-            self.drawSceneNodeChildren(&self.main_scene.root);
-        } else {
-            nc.igText("Empty Scene");
-        }
+        self.drawSceneNodeChildren(&self.main_scene.root);
+
+        if (self.clicked_node != null)
+            self.selected_scene_node.* = self.clicked_node;
     }
 };
