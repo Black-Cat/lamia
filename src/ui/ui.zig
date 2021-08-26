@@ -148,7 +148,7 @@ pub const UI = struct {
 
     fn palette(col: nc.ImGuiCol_) nc.ImVec4 {
         return switch (@enumToInt(col)) {
-            nc.ImGuiCol_Text => .{ .x = 0.1, .y = 0.1, .z = 0.1, .w = 1.0 },
+            nc.ImGuiCol_Text => .{ .x = 0.0, .y = 0.1, .z = 0.1, .w = 1.0 },
             nc.ImGuiCol_TextDisabled => mainColors[1],
             nc.ImGuiCol_WindowBg => mainColors[3],
             nc.ImGuiCol_ChildBg => mainColors[3],

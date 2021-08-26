@@ -15,6 +15,11 @@ pub const SceneTree = struct {
     selected_scene_node: *?*SceneNode,
     clicked_node: ?*SceneNode,
 
+    drag_from: ?*SceneNode,
+    drop_to: ?*SceneNode,
+    parent_insert: ?*SceneNode,
+    parent_insert_index: usize,
+
     pub fn init(self: *SceneTree, selected_scene_node: *?*SceneNode) void {
         self.window = .{
             .widget = .{
@@ -27,6 +32,11 @@ pub const SceneTree = struct {
         };
         self.selected_scene_node = selected_scene_node;
         self.clicked_node = null;
+
+        self.drag_from = null;
+        self.drop_to = null;
+        self.parent_insert = null;
+        self.parent_insert_index = 0;
     }
 
     pub fn deinit(self: *SceneTree) void {
@@ -66,7 +76,7 @@ pub const SceneTree = struct {
 
     fn addNode(self: *SceneTree) void {
         var node: *SceneNode = self.main_scene.root.add();
-        node.init("New Node");
+        node.init("New Node", &self.main_scene.root);
     }
 
     fn addSelectedFlag(flag: nc.ImGuiTreeNodeFlags, node: *SceneNode, selected_node: ?*SceneNode) nc.ImGuiTreeNodeFlags {
@@ -78,6 +88,7 @@ pub const SceneTree = struct {
     fn drawSceneLeaf(self: *SceneTree, node: *SceneNode) void {
         const node_flags: nc.ImGuiTreeNodeFlags = addSelectedFlag(nc.ImGuiTreeNodeFlags_Bullet, node, self.selected_scene_node.*);
         const opened: bool = nc.igTreeNodeEx_Ptr(node, node_flags, &node.name);
+        self.sceneNodeDragDrop(node);
         if (nc.igIsItemClicked(0)) // LMB
             self.clicked_node = node;
         if (opened)
@@ -87,30 +98,35 @@ pub const SceneTree = struct {
     fn drawSceneNode(self: *SceneTree, node: *SceneNode) void {
         const node_flags: nc.ImGuiTreeNodeFlags = addSelectedFlag(nc.ImGuiTreeNodeFlags_OpenOnArrow, node, self.selected_scene_node.*);
         const opened: bool = nc.igTreeNodeEx_Ptr(node, node_flags, &node.name);
+        self.sceneNodeDragDrop(node);
 
         if (nc.igIsItemClicked(0) and !nc.igIsItemToggledOpen()) // LMB
             self.clicked_node = node;
 
         if (opened) {
-            for (node.children.items) |child| {
+            for (node.children.items) |child, i| {
+                self.sceneNodeReorderBlock(node, i);
                 if (child.childrenCount() > 0) {
                     self.drawSceneNode(child);
                 } else {
                     self.drawSceneLeaf(child);
                 }
             }
+            self.sceneNodeReorderBlock(node, node.childrenCount());
             nc.igTreePop();
         }
     }
 
     fn drawSceneNodeChildren(self: *SceneTree, node: *SceneNode) void {
-        for (node.children.items) |child| {
+        for (node.children.items) |child, i| {
+            self.sceneNodeReorderBlock(node, i);
             if (child.childrenCount() > 0) {
                 self.drawSceneNode(child);
             } else {
                 self.drawSceneLeaf(child);
             }
         }
+        self.sceneNodeReorderBlock(node, node.childrenCount());
     }
 
     fn drawSceneHeirarchy(self: *SceneTree) void {
@@ -123,7 +139,55 @@ pub const SceneTree = struct {
 
         self.drawSceneNodeChildren(&self.main_scene.root);
 
+        if (self.drop_to) |drop_to| {
+            var drag_from: *SceneNode = self.drag_from.?;
+            if (!drop_to.hasParent(drag_from))
+                drag_from.reparent(drop_to);
+
+            self.drag_from = null;
+            self.drop_to = null;
+        }
+
+        if (self.parent_insert) |parent_insert| {
+            var drag_from: *SceneNode = self.drag_from.?;
+
+            if (!parent_insert.hasParent(drag_from))
+                drag_from.reorder(parent_insert, self.parent_insert_index);
+
+            self.drag_from = null;
+            self.parent_insert = null;
+        }
+
         if (self.clicked_node != null)
             self.selected_scene_node.* = self.clicked_node;
+    }
+
+    fn sceneNodeDragDrop(self: *SceneTree, node: *SceneNode) void {
+        if (nc.igBeginDragDropSource(nc.ImGuiDragDropFlags_SourceNoDisableHover | nc.ImGuiDragDropFlags_SourceNoHoldToOpenOthers)) {
+            nc.igText("Moving \"%s\"", node.name);
+            _ = nc.igSetDragDropPayload("DND_SCENE_NODE", @ptrCast(*const c_void, &node), @sizeOf(*SceneNode), nc.ImGuiCond_Once);
+            nc.igEndDragDropSource();
+        }
+
+        // parent_insert prevents reacting to insert action second time
+        // even though payload will be set to null, it will be set to undelivered state
+        // preventing unloading payload for insert action
+        if (self.parent_insert == null and nc.igBeginDragDropTarget()) {
+            const payload: ?*const nc.ImGuiPayload = nc.igAcceptDragDropPayload("DND_SCENE_NODE", 0);
+            if (payload) |p| {
+                self.drag_from = @ptrCast(**SceneNode, @alignCast(@alignOf(**SceneNode), p.Data)).*;
+                self.drop_to = node;
+            }
+            nc.igEndDragDropTarget();
+        }
+    }
+
+    fn sceneNodeReorderBlock(self: *SceneTree, parent: *SceneNode, after_index: usize) void {
+        const payload: ?*const nc.ImGuiPayload = nc.igAcceptReorderDropPayload("DND_SCENE_NODE", 0);
+        if (payload) |p| {
+            self.drag_from = @ptrCast(**SceneNode, @alignCast(@alignOf(**SceneNode), p.Data)).*;
+            self.parent_insert = parent;
+            self.parent_insert_index = after_index + 1;
+        }
     }
 };
