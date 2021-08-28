@@ -1,24 +1,34 @@
 const nyan = @import("nyancore");
 const std = @import("std");
+const NodeType = @import("../nodes/node_type.zig").NodeType;
 
 pub const SceneNode = struct {
     pub const NAME_SIZE: i32 = 128;
 
     name: [NAME_SIZE]u8,
+    node_type: *const NodeType,
+
+    buffer: *c_void,
+    buffer_size: usize,
 
     children: std.ArrayList(*SceneNode),
     parent: ?*SceneNode,
 
-    pub fn init(self: *SceneNode, name: []const u8, parent: ?*SceneNode) void {
+    pub fn init(self: *SceneNode, node_type: *const NodeType, name: []const u8, parent: ?*SceneNode) void {
         self.children = std.ArrayList(*SceneNode).init(nyan.app.allocator);
+        self.node_type = node_type;
         self.parent = parent;
         self.setName(name);
+
+        self.node_type.init_data_fn(&self.buffer, &self.buffer_size);
     }
 
     pub fn deinit(self: *SceneNode) void {
         for (self.children) |child|
             child.deinit();
         self.children.deinit();
+
+        nyan.app.allocator.free(self.buffer);
     }
 
     pub fn setName(self: *SceneNode, name: []const u8) void {
@@ -28,7 +38,6 @@ pub const SceneNode = struct {
     pub fn add(self: *SceneNode) *SceneNode {
         const new_node: **SceneNode = self.children.addOne() catch unreachable;
         new_node.* = nyan.app.allocator.create(SceneNode) catch unreachable;
-        new_node.*.init("New Node", self);
         return new_node.*;
     }
 

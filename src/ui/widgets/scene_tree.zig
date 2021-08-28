@@ -6,6 +6,9 @@ const Window = nyan.Widgets.Window;
 const Scene = @import("../../scene/scene.zig").Scene;
 const SceneNode = @import("../../scene/scene_node.zig").SceneNode;
 
+const NodeCollection = @import("../../nodes/node_collection.zig");
+const NodeType = @import("../../nodes/node_type.zig").NodeType;
+
 const scene_tree_key_open: []const u8 = "ui_widgets_scene_tree_open";
 
 pub const SceneTree = struct {
@@ -67,16 +70,32 @@ pub const SceneTree = struct {
 
         _ = nc.igBegin(self.window.strId.ptr, &window.open, nc.ImGuiWindowFlags_None);
         if (nc.igButton("Add Node", .{ .x = 0, .y = 0 }))
-            self.addNode();
+            nc.igOpenPopup("add_node_popup", nc.ImGuiPopupFlags_None);
 
         self.drawSceneHeirarchy();
+
+        if (nc.igBeginPopup("add_node_popup", nc.ImGuiWindowFlags_None)) {
+            nc.igColumns(1, "nodes_columns", true);
+
+            nc.igText("Combinators");
+            nc.igNextColumn();
+            nc.igSeparator();
+
+            for (NodeCollection.combinators) |node_type|
+                if (nc.igSelectable_Bool(node_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
+                    self.addNode(&node_type);
+
+            nc.igColumns(1, null, true);
+            nc.igSetCursorPosX(600);
+            nc.igEndPopup();
+        }
 
         nc.igEnd();
     }
 
-    fn addNode(self: *SceneTree) void {
+    fn addNode(self: *SceneTree, node_type: *const NodeType) void {
         var node: *SceneNode = self.main_scene.root.add();
-        node.init("New Node", &self.main_scene.root);
+        node.init(node_type, node_type.name, &self.main_scene.root);
     }
 
     fn addSelectedFlag(flag: nc.ImGuiTreeNodeFlags, node: *SceneNode, selected_node: ?*SceneNode) nc.ImGuiTreeNodeFlags {

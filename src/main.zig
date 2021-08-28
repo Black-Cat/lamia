@@ -5,10 +5,10 @@ const UI = @import("ui/ui.zig").UI;
 const std = @import("std");
 
 pub fn main() !void {
-    var renderer: nyan.DefaultRenderer = undefined;
-    renderer.init("Main Renderer", std.testing.allocator);
-
     const allocator: *std.mem.Allocator = std.testing.allocator;
+
+    var renderer: nyan.DefaultRenderer = undefined;
+    renderer.init("Main Renderer", allocator);
 
     var ui: UI = undefined;
     ui.init(allocator);
@@ -21,7 +21,7 @@ pub fn main() !void {
         &ui.nyanui.system,
     };
 
-    nyan.initGlobalData(std.testing.allocator);
+    nyan.initGlobalData(allocator);
     defer nyan.deinitGlobalData();
 
     nyan.app.init("lamia", allocator, systems);
