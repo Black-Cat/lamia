@@ -15,12 +15,11 @@ const Data = struct {
     enter_index: i32,
 };
 
-fn initData(buffer: **c_void, buffer_size: *usize) void {
+fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     setBuffer(data.enter_function[0..], "cpout = cpin;");
     setBuffer(data.exit_function[0..], "cdout = cdin;");
 
-    buffer.* = @ptrCast(*c_void, data);
-    buffer_size.* = @sizeOf(Data);
+    buffer.* = std.mem.asBytes(data);
 }

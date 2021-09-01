@@ -8,8 +8,7 @@ pub const SceneNode = struct {
     name: [NAME_SIZE]u8,
     node_type: *const NodeType,
 
-    buffer: *c_void,
-    buffer_size: usize,
+    buffer: []u8,
 
     children: std.ArrayList(*SceneNode),
     parent: ?*SceneNode,
@@ -20,7 +19,7 @@ pub const SceneNode = struct {
         self.parent = parent;
         self.setName(name);
 
-        self.node_type.init_data_fn(&self.buffer, &self.buffer_size);
+        self.node_type.init_data_fn(&self.buffer);
     }
 
     pub fn deinit(self: *SceneNode) void {

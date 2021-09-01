@@ -17,7 +17,7 @@ const Data = struct {
     mat: i32,
 };
 
-fn initData(buffer: **c_void, buffer_size: *usize) void {
+fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     data.angle = 2.0;
@@ -25,6 +25,5 @@ fn initData(buffer: **c_void, buffer_size: *usize) void {
     data.outer_radius = 0.1;
     data.mat = 0;
 
-    buffer.* = @ptrCast(*c_void, data);
-    buffer_size.* = @sizeOf(Data);
+    buffer.* = std.mem.asBytes(data);
 }

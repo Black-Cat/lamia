@@ -14,7 +14,7 @@ const Data = struct {
     steps: u32,
 };
 
-fn initData(buffer: **c_void, buffer_size: *usize) void {
+fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     data.near = 0.1;
@@ -22,6 +22,5 @@ fn initData(buffer: **c_void, buffer_size: *usize) void {
     data.fov = 60.0;
     data.steps = 64;
 
-    buffer.* = @ptrCast(*c_void, data);
-    buffer_size.* = @sizeOf(Data);
+    buffer.* = std.mem.asBytes(data);
 }

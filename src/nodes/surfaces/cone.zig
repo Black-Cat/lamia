@@ -16,13 +16,12 @@ const Data = struct {
     mat: i32,
 };
 
-fn initData(buffer: **c_void, buffer_size: *usize) void {
+fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     data.angle = 0.5;
     data.height = 1.0;
     data.mat = 0;
 
-    buffer.* = @ptrCast(*c_void, data);
-    buffer_size.* = @sizeOf(Data);
+    buffer.* = std.mem.asBytes(data);
 }

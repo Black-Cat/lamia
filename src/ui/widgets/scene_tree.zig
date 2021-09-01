@@ -12,6 +12,8 @@ const NodeType = @import("../../nodes/node_type.zig").NodeType;
 const scene_tree_key_open: []const u8 = "ui_widgets_scene_tree_open";
 
 pub const SceneTree = struct {
+    const FILE_PATH_LEN = 256;
+
     window: nyan.Widgets.Window,
     main_scene: Scene,
 
@@ -22,6 +24,8 @@ pub const SceneTree = struct {
     drop_to: ?*SceneNode,
     parent_insert: ?*SceneNode,
     parent_insert_index: usize,
+
+    selected_file_path: [FILE_PATH_LEN]u8,
 
     pub fn init(self: *SceneTree, selected_scene_node: *?*SceneNode) void {
         self.window = .{
@@ -40,6 +44,7 @@ pub const SceneTree = struct {
         self.drop_to = null;
         self.parent_insert = null;
         self.parent_insert_index = 0;
+        self.cleanSelectedPath();
     }
 
     pub fn deinit(self: *SceneTree) void {
@@ -62,9 +67,9 @@ pub const SceneTree = struct {
     }
 
     fn drawNodeCollection(self: *SceneTree, collection: []const NodeType) void {
-        for (collection) |node_type|
+        for (collection) |*node_type|
             if (nc.igSelectable_Bool(node_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
-                self.addNode(&node_type);
+                self.addNode(node_type);
     }
 
     fn windowDraw(widget: *Widget) void {
@@ -77,6 +82,18 @@ pub const SceneTree = struct {
         _ = nc.igBegin(self.window.strId.ptr, &window.open, nc.ImGuiWindowFlags_None);
         if (nc.igButton("Add Node", .{ .x = 0, .y = 0 }))
             nc.igOpenPopup("add_node_popup", nc.ImGuiPopupFlags_None);
+
+        nc.igSameLine(0.0, 10.0);
+        if (nc.igButton("Save", .{ .x = 0, .y = 0 })) {
+            self.cleanSelectedPath();
+            nc.igOpenPopup("save_scene_popup", nc.ImGuiPopupFlags_None);
+        }
+
+        nc.igSameLine(0.0, 10.0);
+        if (nc.igButton("Load", .{ .x = 0, .y = 0 })) {
+            self.cleanSelectedPath();
+            nc.igOpenPopup("load_scene_popup", nc.ImGuiPopupFlags_None);
+        }
 
         self.drawSceneHeirarchy();
 
@@ -104,6 +121,36 @@ pub const SceneTree = struct {
 
             nc.igColumns(1, null, true);
             nc.igSetCursorPosX(600);
+            nc.igEndPopup();
+        }
+
+        var open_modal: bool = true;
+        if (nc.igBeginPopupModal("save_scene_popup", &open_modal, nc.ImGuiWindowFlags_None)) {
+            if (nc.igInputText("Path", @ptrCast([*c]u8, &self.selected_file_path), FILE_PATH_LEN, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
+                self.saveScene();
+                nc.igCloseCurrentPopup();
+            }
+            if (nc.igButton("Save", .{ .x = 0, .y = 0 })) {
+                self.saveScene();
+                nc.igCloseCurrentPopup();
+            }
+            nc.igSameLine(200.0, 2.0);
+            if (nc.igButton("Cancel", .{ .x = 0, .y = 0 }))
+                nc.igCloseCurrentPopup();
+            nc.igEndPopup();
+        }
+        if (nc.igBeginPopupModal("load_scene_popup", &open_modal, nc.ImGuiWindowFlags_None)) {
+            if (nc.igInputText("Path", @ptrCast([*c]u8, &self.selected_file_path), FILE_PATH_LEN, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
+                self.loadScene();
+                nc.igCloseCurrentPopup();
+            }
+            if (nc.igButton("Load", .{ .x = 0, .y = 0 })) {
+                self.loadScene();
+                nc.igCloseCurrentPopup();
+            }
+            nc.igSameLine(200.0, 2.0);
+            if (nc.igButton("Cancel", .{ .x = 0, .y = 0 }))
+                nc.igCloseCurrentPopup();
             nc.igEndPopup();
         }
 
@@ -225,5 +272,22 @@ pub const SceneTree = struct {
             self.parent_insert = parent;
             self.parent_insert_index = after_index + 1;
         }
+    }
+
+    fn cleanSelectedPath(self: *SceneTree) void {
+        @memcpy(@ptrCast([*]u8, &self.selected_file_path[0]), "", 1);
+    }
+
+    fn saveScene(self: *SceneTree) void {
+        self.main_scene.save(std.mem.sliceTo(&self.selected_file_path, 0)) catch {
+            nyan.printError("Scene", "Error while saving scene");
+        };
+    }
+
+    fn loadScene(self: *SceneTree) void {
+        self.selected_scene_node.* = null;
+        self.main_scene.load(std.mem.sliceTo(&self.selected_file_path, 0)) catch {
+            nyan.printError("Scene", "Error while loading scene");
+        };
     }
 };

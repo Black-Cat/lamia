@@ -13,13 +13,12 @@ const Data = struct {
     shadow_steps: u32,
 };
 
-fn initData(buffer: **c_void, buffer_size: *usize) void {
+fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     data.background_color = [_]f32{ 0.281, 0.281, 0.281 };
     data.light_dir = [_]f32{ 0.57, 0.57, 0.57 };
     data.shadow_steps = 16;
 
-    buffer.* = @ptrCast(*c_void, data);
-    buffer_size.* = @sizeOf(Data);
+    buffer.* = std.mem.asBytes(data);
 }

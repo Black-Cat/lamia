@@ -11,11 +11,10 @@ const Data = struct {
     material_function: [1024]u8,
 };
 
-fn initData(buffer: **c_void, buffer_size: *usize) void {
+fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     setBuffer(data.material_function, "float nl = dot(n, l);\nres = vec3(max(0., nl));\n");
 
-    buffer.* = @ptrCast(*c_void, data);
-    buffer_size.* = @sizeOf(Data);
+    buffer.* = std.mem.asBytes(data);
 }
