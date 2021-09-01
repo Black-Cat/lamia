@@ -61,6 +61,12 @@ pub const SceneTree = struct {
         nyan.app.config.map.put(scene_tree_key_open, if (self.window.open) "1" else "0") catch unreachable;
     }
 
+    fn drawNodeCollection(self: *SceneTree, collection: []const NodeType) void {
+        for (collection) |node_type|
+            if (nc.igSelectable_Bool(node_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
+                self.addNode(&node_type);
+    }
+
     fn windowDraw(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *SceneTree = @fieldParentPtr(SceneTree, "window", window);
@@ -75,15 +81,26 @@ pub const SceneTree = struct {
         self.drawSceneHeirarchy();
 
         if (nc.igBeginPopup("add_node_popup", nc.ImGuiWindowFlags_None)) {
-            nc.igColumns(1, "nodes_columns", true);
+            nc.igColumns(4, "nodes_columns", true);
 
+            nc.igText("Surfaces");
+            nc.igNextColumn();
+            nc.igText("Modifiers");
+            nc.igNextColumn();
             nc.igText("Combinators");
             nc.igNextColumn();
+            nc.igText("Special");
+            nc.igNextColumn();
+
             nc.igSeparator();
 
-            for (NodeCollection.combinators) |node_type|
-                if (nc.igSelectable_Bool(node_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
-                    self.addNode(&node_type);
+            self.drawNodeCollection(NodeCollection.surfaces[0..]);
+            nc.igNextColumn();
+            self.drawNodeCollection(NodeCollection.modifiers[0..]);
+            nc.igNextColumn();
+            self.drawNodeCollection(NodeCollection.combinators[0..]);
+            nc.igNextColumn();
+            self.drawNodeCollection(NodeCollection.special[0..]);
 
             nc.igColumns(1, null, true);
             nc.igSetCursorPosX(600);
