@@ -14,7 +14,7 @@ const Data = struct {
 fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
-    setBuffer(data.material_function, "float nl = dot(n, l);\nres = vec3(max(0., nl));\n");
+    setBuffer(data.material_function[0..], "float nl = dot(n, l);\nres = vec3(max(0., nl));\n");
 
     buffer.* = std.mem.asBytes(data);
 }

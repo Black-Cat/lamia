@@ -1,8 +1,12 @@
 const std = @import("std");
+const nyan = @import("nyancore");
 const SceneNode = @import("scene_node.zig").SceneNode;
 const NodeType = @import("../nodes/node_type.zig").NodeType;
+const node_map = @import("../nodes/node_collection.zig").node_map;
 
-fn root_init(buffer: *[]u8) void {}
+fn root_init(buffer: *[]u8) void {
+    buffer.* = nyan.app.allocator.alloc(u8, 0) catch unreachable;
+}
 
 const RootType: NodeType = .{
     .name = "root",
@@ -37,7 +41,6 @@ pub const Scene = struct {
         try writeU32(file, node.node_type.name.len);
         try file.writeAll(node.node_type.name);
 
-        try writeU32(file, node.buffer.len);
         try file.writeAll(node.buffer);
 
         try writeU32(file, node.childrenCount());
@@ -55,10 +58,45 @@ pub const Scene = struct {
             try recursiveSave(child, &file);
     }
 
-    // Doesn't recompile shaders!!!
+    fn readU32(file: *const std.fs.File) std.os.ReadError!usize {
+        var temp: [@sizeOf(u32)]u8 = undefined;
+        _ = try file.readAll(temp[0..]);
+        return @intCast(usize, std.mem.readIntBig(u32, &temp));
+    }
+
+    fn recursiveLoad(parent: *SceneNode, file: *const std.fs.File) std.os.ReadError!void {
+        var node: *SceneNode = parent.add();
+
+        const name_len: usize = try readU32(file);
+        _ = try file.readAll(node.name[0..name_len]);
+        node.name[name_len] = 0;
+
+        const node_type_len: usize = try readU32(file);
+        var node_type_name: []u8 = nyan.app.allocator.alloc(u8, node_type_len) catch unreachable;
+        defer nyan.app.allocator.free(node_type_name);
+        _ = try file.readAll(node_type_name);
+
+        const node_type: *const NodeType = node_map.get(node_type_name).?;
+        node.initWithoutName(node_type, parent);
+
+        _ = try file.readAll(node.buffer);
+
+        var children_count: usize = try readU32(file);
+        while (children_count > 0) : (children_count -= 1)
+            try recursiveLoad(node, file);
+    }
+
+    // Doesn't recompile scene shaders!!!
     pub fn load(self: *Scene, path: []const u8) !void {
-        const mode: std.os.mode_t = if (std.Target.current.os.tag == .windows) 0 else 0o666;
-        var file: std.os.fd_t = try std.os.open(path, std.os.O_RDONLY, mode);
-        defer std.os.close(file);
+        const cwd: std.fs.Dir = std.fs.cwd();
+        const file: std.fs.File = try cwd.openFile(path, .{ .read = true });
+        defer file.close();
+
+        self.deinit();
+        self.init();
+
+        var root_level_nodes_count: usize = try readU32(&file);
+        while (root_level_nodes_count > 0) : (root_level_nodes_count -= 1)
+            try recursiveLoad(&self.root, &file);
     }
 };

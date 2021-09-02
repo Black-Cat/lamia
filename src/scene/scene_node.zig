@@ -14,16 +14,21 @@ pub const SceneNode = struct {
     parent: ?*SceneNode,
 
     pub fn init(self: *SceneNode, node_type: *const NodeType, name: []const u8, parent: ?*SceneNode) void {
+        self.initWithoutName(node_type, parent);
+
+        self.setName(name);
+    }
+
+    pub fn initWithoutName(self: *SceneNode, node_type: *const NodeType, parent: ?*SceneNode) void {
         self.children = std.ArrayList(*SceneNode).init(nyan.app.allocator);
         self.node_type = node_type;
         self.parent = parent;
-        self.setName(name);
 
         self.node_type.init_data_fn(&self.buffer);
     }
 
     pub fn deinit(self: *SceneNode) void {
-        for (self.children) |child|
+        for (self.children.items) |child|
             child.deinit();
         self.children.deinit();
 

@@ -1,3 +1,4 @@
+const std = @import("std");
 const NodeType = @import("node_type.zig").NodeType;
 
 pub const combinators = [_]NodeType{
@@ -70,3 +71,25 @@ pub const surfaces = [_]NodeType{
     @import("surfaces/vertical_capsule.zig").VerticalCapsule,
     @import("surfaces/vertical_round_cone.zig").VerticalRoundCone,
 };
+
+const NodeKV = struct {
+    @"0": []const u8,
+    @"1": *const NodeType,
+};
+
+fn collectionToKV(comptime collection: []const NodeType) []NodeKV {
+    var kvs = [1]NodeKV{undefined} ** collection.len;
+    for (collection) |*node_type, i|
+        kvs[i] = .{ .@"0" = node_type.name, .@"1" = node_type };
+    return kvs[0..];
+}
+
+pub const node_map = std.ComptimeStringMap(
+    *const NodeType,
+    collectionToKV(combinators[0..]) ++
+        collectionToKV(materials[0..]) ++
+        collectionToKV(modifiers[0..]) ++
+        collectionToKV(scene_settings[0..]) ++
+        collectionToKV(special[0..]) ++
+        collectionToKV(surfaces[0..]),
+);
