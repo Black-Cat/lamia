@@ -30,6 +30,7 @@ pub const SceneNode = struct {
     pub fn deinit(self: *SceneNode) void {
         for (self.children.items) |child|
             child.deinit();
+        self.children.clearAndFree();
         self.children.deinit();
 
         nyan.app.allocator.free(self.buffer);

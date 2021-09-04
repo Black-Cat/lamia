@@ -96,6 +96,7 @@ pub const SceneTree = struct {
         }
 
         self.drawSceneHeirarchy();
+        self.drawSceneSettings();
 
         if (nc.igBeginPopup("add_node_popup", nc.ImGuiWindowFlags_None)) {
             nc.igColumns(4, "nodes_columns", true);
@@ -243,6 +244,13 @@ pub const SceneTree = struct {
 
         if (self.clicked_node != null)
             self.selected_scene_node.* = self.clicked_node;
+    }
+
+    fn drawSceneSettings(self: *SceneTree) void {
+        for (self.main_scene.settings.children.items) |node| {
+            if (nc.igButton(&node.name, .{ .x = 0, .y = 0 }))
+                self.clicked_node = node;
+        }
     }
 
     fn sceneNodeDragDrop(self: *SceneTree, node: *SceneNode) void {
