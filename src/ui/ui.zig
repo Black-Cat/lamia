@@ -7,6 +7,7 @@ const SceneNode = @import("../scene/scene_node.zig").SceneNode;
 
 const Console = @import("widgets/console.zig").Console;
 const Inspector = @import("widgets/inspector.zig").Inspector;
+const Materials = @import("widgets/materials.zig").Materials;
 const Monitor = @import("widgets/monitor.zig").Monitor;
 const SceneTree = @import("widgets/scene_tree.zig").SceneTree;
 
@@ -28,7 +29,7 @@ pub const UI = struct {
     nyanui: nyan.UI,
 
     dockspace: nyan.Widgets.DockSpace,
-    dummy_windows: [2]nyan.Widgets.DummyWindow,
+    dummy_windows: [1]nyan.Widgets.DummyWindow,
     windows: [6]*nyan.Widgets.Window,
 
     nyanui_system_init_fn: fn (system: *nyan.System, app: *nyan.Application) void,
@@ -36,6 +37,7 @@ pub const UI = struct {
 
     console: Console,
     inspector: Inspector,
+    materials: Materials,
     monitor: Monitor,
     scene_tree: SceneTree,
 
@@ -59,15 +61,15 @@ pub const UI = struct {
 
         self.console.init();
         self.inspector.init(&self.selected_scene_node);
-        self.monitor.init();
         self.scene_tree.init(&self.selected_scene_node);
+        self.monitor.init();
+        self.materials.init(&self.selected_scene_node, &self.scene_tree.main_scene);
 
-        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined} ** 2;
+        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined};
         self.dummy_windows[0].init("Viewport Space", allocator);
-        self.dummy_windows[1].init("Materials", allocator);
 
         self.windows[0] = &self.dummy_windows[0].window;
-        self.windows[1] = &self.dummy_windows[1].window;
+        self.windows[1] = &self.materials.window;
         self.windows[2] = &self.inspector.window;
         self.windows[3] = &self.scene_tree.window;
         self.windows[4] = &self.console.window;

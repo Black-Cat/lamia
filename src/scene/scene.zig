@@ -35,7 +35,7 @@ pub const Scene = struct {
         }
 
         var default_material: *SceneNode = self.materials.add();
-        default_material.init(node_collection.materials[0], "Default Material", &self.materials);
+        default_material.init(&node_collection.materials[0], "Default Material", &self.materials);
     }
 
     pub fn deinit(self: *Scene) void {
