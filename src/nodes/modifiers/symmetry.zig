@@ -4,11 +4,21 @@ pub const Symmetry: NodeType = .{
     .name = "Symmetry",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
 const Data = struct {
     axis: i32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawAxisMaskProperty,
+        .offset = @byteOffsetOf(Data, "axis"),
+        .name = "Axis",
+    },
 };
 
 fn initData(buffer: *[]u8) void {

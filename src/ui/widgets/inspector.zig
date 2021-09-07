@@ -52,7 +52,7 @@ pub const Inspector = struct {
         _ = nc.igBegin(self.window.strId.ptr, &window.open, nc.ImGuiWindowFlags_None);
 
         if (self.selected_scene_node.*) |node| {
-            self.showSelectedNode(node);
+            self.drawSelectedNode(node);
         } else {
             nc.igText("No node selected");
         }
@@ -60,7 +60,14 @@ pub const Inspector = struct {
         nc.igEnd();
     }
 
-    fn showSelectedNode(self: *Inspector, node: *SceneNode) void {
+    fn drawSelectedNode(self: *Inspector, node: *SceneNode) void {
         _ = nc.igInputText("Name", &node.name, SceneNode.NAME_SIZE, 0, null, null);
+
+        var edited: bool = false;
+        for (node.node_type.properties) |*prop|
+            edited = prop.drawFn(prop, &node.buffer) or edited;
+
+        if (edited and node.node_type.has_edit_callback)
+            node.node_type.edit_callback(&node.buffer);
     }
 };

@@ -249,7 +249,7 @@ pub const SceneTree = struct {
     fn drawSceneSettings(self: *SceneTree) void {
         for (self.main_scene.settings.children.items) |node| {
             if (nc.igButton(&node.name, .{ .x = 0, .y = 0 }))
-                self.clicked_node = node;
+                self.selected_scene_node.* = node;
         }
     }
 

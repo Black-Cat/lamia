@@ -4,6 +4,8 @@ pub const CameraSettings: NodeType = .{
     .name = "Camera Settings",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
@@ -12,6 +14,29 @@ const Data = struct {
     far: f32,
     fov: f32,
     steps: u32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "near"),
+        .name = "Near",
+    },
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "far"),
+        .name = "Far",
+    },
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "fov"),
+        .name = "FOV",
+    },
+    .{
+        .drawFn = drawU32Property,
+        .offset = @byteOffsetOf(Data, "steps"),
+        .name = "Max Steps",
+    },
 };
 
 fn initData(buffer: *[]u8) void {

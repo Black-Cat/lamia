@@ -4,6 +4,8 @@ pub const Plane: NodeType = .{
     .name = "Plane",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
@@ -14,6 +16,24 @@ const Data = struct {
     enter_index: i32,
     enter_stack: i32,
     mat: i32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawFloat3Property,
+        .offset = @byteOffsetOf(Data, "normal"),
+        .name = "Normal",
+    },
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "offset"),
+        .name = "Offset",
+    },
+    .{
+        .drawFn = drawMaterialProperty,
+        .offset = @byteOffsetOf(Data, "mat"),
+        .name = "Material",
+    },
 };
 
 fn initData(buffer: *[]u8) void {

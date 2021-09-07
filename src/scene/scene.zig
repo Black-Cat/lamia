@@ -2,15 +2,20 @@ const std = @import("std");
 const nyan = @import("nyancore");
 const SceneNode = @import("scene_node.zig").SceneNode;
 const NodeType = @import("../nodes/node_type.zig").NodeType;
+const NodeProperty = @import("../nodes/node_property.zig").NodeProperty;
 const node_collection = @import("../nodes/node_collection.zig");
 
 fn root_init(buffer: *[]u8) void {
     buffer.* = nyan.app.allocator.alloc(u8, 0) catch unreachable;
 }
 
+const root_properties = [_]NodeProperty{};
+
 const RootType: NodeType = .{
     .name = "root",
     .function_defenition = "",
+
+    .properties = root_properties[0..],
 
     .init_data_fn = root_init,
 };

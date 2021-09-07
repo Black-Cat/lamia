@@ -4,6 +4,8 @@ pub const VerticalCappedCone: NodeType = .{
     .name = "Vertical Capped Cone",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
@@ -15,6 +17,29 @@ const Data = struct {
     enter_index: i32,
     enter_stack: i32,
     mat: i32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "height"),
+        .name = "Height",
+    },
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "start_radius"),
+        .name = "Start Radius",
+    },
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "end_radius"),
+        .name = "End Radius",
+    },
+    .{
+        .drawFn = drawMaterialProperty,
+        .offset = @byteOffsetOf(Data, "mat"),
+        .name = "Material",
+    },
 };
 
 fn initData(buffer: *[]u8) void {

@@ -4,11 +4,21 @@ pub const Elongate: NodeType = .{
     .name = "Elongate",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
 const Data = struct {
     height: f32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "height"),
+        .name = "Height",
+    },
 };
 
 fn initData(buffer: *[]u8) void {

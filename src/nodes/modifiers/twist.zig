@@ -4,11 +4,21 @@ pub const Twist: NodeType = .{
     .name = "Twist",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
 const Data = struct {
     power: f32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "power"),
+        .name = "Power",
+    },
 };
 
 fn initData(buffer: *[]u8) void {

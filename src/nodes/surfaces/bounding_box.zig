@@ -4,6 +4,8 @@ pub const BoundingBox: NodeType = .{
     .name = "Bounding Box",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
@@ -14,6 +16,24 @@ const Data = struct {
     enter_index: i32,
     enter_stack: i32,
     mat: i32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawFloat3Property,
+        .offset = @byteOffsetOf(Data, "size"),
+        .name = "Size",
+    },
+    .{
+        .drawFn = drawFloatProperty,
+        .offset = @byteOffsetOf(Data, "extent"),
+        .name = "Extent",
+    },
+    .{
+        .drawFn = drawMaterialProperty,
+        .offset = @byteOffsetOf(Data, "mat"),
+        .name = "Material",
+    },
 };
 
 fn initData(buffer: *[]u8) void {

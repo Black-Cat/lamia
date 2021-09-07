@@ -4,6 +4,8 @@ pub const Triangle: NodeType = .{
     .name = "Triangle",
     .function_defenition = "",
 
+    .properties = properties[0..],
+
     .init_data_fn = initData,
 };
 
@@ -15,6 +17,29 @@ const Data = struct {
     enter_index: i32,
     enter_stack: i32,
     mat: i32,
+};
+
+const properties = [_]NodeProperty{
+    .{
+        .drawFn = drawFloat3Property,
+        .offset = @byteOffsetOf(Data, "point_a"),
+        .name = "Point A",
+    },
+    .{
+        .drawFn = drawFloat3Property,
+        .offset = @byteOffsetOf(Data, "point_b"),
+        .name = "Point B",
+    },
+    .{
+        .drawFn = drawFloat3Property,
+        .offset = @byteOffsetOf(Data, "point_c"),
+        .name = "Point C",
+    },
+    .{
+        .drawFn = drawMaterialProperty,
+        .offset = @byteOffsetOf(Data, "mat"),
+        .name = "Material",
+    },
 };
 
 fn initData(buffer: *[]u8) void {
