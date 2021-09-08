@@ -5,6 +5,7 @@ const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
 const Scene = @import("../../scene/scene.zig").Scene;
 const SceneNode = @import("../../scene/scene_node.zig").SceneNode;
+const Global = @import("../../global.zig");
 
 const NodeCollection = @import("../../nodes/node_collection.zig");
 const NodeType = @import("../../nodes/node_type.zig").NodeType;
@@ -15,7 +16,6 @@ pub const SceneTree = struct {
     const FILE_PATH_LEN = 256;
 
     window: nyan.Widgets.Window,
-    main_scene: Scene,
 
     selected_scene_node: *?*SceneNode,
     clicked_node: ?*SceneNode,
@@ -47,17 +47,13 @@ pub const SceneTree = struct {
         self.cleanSelectedPath();
     }
 
-    pub fn deinit(self: *SceneTree) void {
-        self.main_scene.deinit();
-    }
+    pub fn deinit(self: *SceneTree) void {}
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *SceneTree = @fieldParentPtr(SceneTree, "window", window);
         const open: bool = std.mem.eql(u8, nyan.app.config.map.get(scene_tree_key_open) orelse "1", "1");
         self.window.open = open;
-
-        self.main_scene.init();
     }
 
     fn windowDeinit(widget: *Widget) void {
@@ -159,8 +155,8 @@ pub const SceneTree = struct {
     }
 
     fn addNode(self: *SceneTree, node_type: *const NodeType) void {
-        var node: *SceneNode = self.main_scene.root.add();
-        node.init(node_type, node_type.name, &self.main_scene.root);
+        var node: *SceneNode = Global.main_scene.root.add();
+        node.init(node_type, node_type.name, &Global.main_scene.root);
     }
 
     fn addSelectedFlag(flag: nc.ImGuiTreeNodeFlags, node: *SceneNode, selected_node: ?*SceneNode) nc.ImGuiTreeNodeFlags {
@@ -214,14 +210,14 @@ pub const SceneTree = struct {
     }
 
     fn drawSceneHeirarchy(self: *SceneTree) void {
-        if (self.main_scene.root.childrenCount() == 0) {
+        if (Global.main_scene.root.childrenCount() == 0) {
             nc.igText("Empty Scene");
             return;
         }
 
         self.clicked_node = null;
 
-        self.drawSceneNodeChildren(&self.main_scene.root);
+        self.drawSceneNodeChildren(&Global.main_scene.root);
 
         if (self.drop_to) |drop_to| {
             var drag_from: *SceneNode = self.drag_from.?;
@@ -247,7 +243,7 @@ pub const SceneTree = struct {
     }
 
     fn drawSceneSettings(self: *SceneTree) void {
-        for (self.main_scene.settings.children.items) |node| {
+        for (Global.main_scene.settings.children.items) |node| {
             if (nc.igButton(&node.name, .{ .x = 0, .y = 0 }))
                 self.selected_scene_node.* = node;
         }
@@ -287,14 +283,14 @@ pub const SceneTree = struct {
     }
 
     fn saveScene(self: *SceneTree) void {
-        self.main_scene.save(std.mem.sliceTo(&self.selected_file_path, 0)) catch {
+        Global.main_scene.save(std.mem.sliceTo(&self.selected_file_path, 0)) catch {
             nyan.printError("Scene", "Error while saving scene");
         };
     }
 
     fn loadScene(self: *SceneTree) void {
         self.selected_scene_node.* = null;
-        self.main_scene.load(std.mem.sliceTo(&self.selected_file_path, 0)) catch {
+        Global.main_scene.load(std.mem.sliceTo(&self.selected_file_path, 0)) catch {
             nyan.printError("Scene", "Error while loading scene");
         };
     }

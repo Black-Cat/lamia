@@ -1,5 +1,6 @@
 const nyan = @import("nyancore");
 const nc = nyan.c;
+const Global = @import("../global.zig");
 
 pub const NodeProperty = struct {
     drawFn: fn (self: *const NodeProperty, data: *[]u8) bool,
@@ -63,5 +64,21 @@ pub fn drawAxisMaskProperty(self: *const NodeProperty, data: *[]u8) bool {
 }
 
 pub fn drawMaterialProperty(self: *const NodeProperty, data: *[]u8) bool {
-    return false;
+    var data_ptr: [*c]i32 = @ptrCast([*c]i32, @alignCast(@alignOf(i32), &data.*[self.offset]));
+    const current_index: i32 = data_ptr[0];
+
+    var changed: bool = false;
+    if (nc.igBeginCombo(self.name.ptr, &Global.main_scene.materials.children.items[@intCast(usize, current_index)].name, nc.ImGuiComboFlags_None)) {
+        for (Global.main_scene.materials.children.items) |mat, i| {
+            nc.igPushID_Ptr(mat);
+            if (nc.igSelectable_Bool(&mat.name, i == current_index, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 })) {
+                data_ptr[0] = @intCast(i32, i);
+                changed = true;
+            }
+            nc.igPopID();
+        }
+        nc.igEndCombo();
+    }
+
+    return changed;
 }

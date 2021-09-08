@@ -63,7 +63,7 @@ pub const UI = struct {
         self.inspector.init(&self.selected_scene_node);
         self.scene_tree.init(&self.selected_scene_node);
         self.monitor.init();
-        self.materials.init(&self.selected_scene_node, &self.scene_tree.main_scene);
+        self.materials.init(&self.selected_scene_node);
 
         self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined};
         self.dummy_windows[0].init("Viewport Space", allocator);

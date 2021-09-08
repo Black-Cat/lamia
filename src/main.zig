@@ -1,6 +1,7 @@
 const nyan = @import("nyancore");
 
 const UI = @import("ui/ui.zig").UI;
+const Global = @import("global.zig");
 
 const std = @import("std");
 
@@ -26,6 +27,9 @@ pub fn main() !void {
 
     nyan.app.init("lamia", allocator, systems);
     defer nyan.app.deinit();
+
+    Global.main_scene.init();
+    defer Global.main_scene.deinit();
 
     try nyan.app.start();
 }

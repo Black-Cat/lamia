@@ -3,6 +3,7 @@ const nc = nyan.c;
 const std = @import("std");
 const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
+const Global = @import("../../global.zig");
 
 const SceneNode = @import("../../scene/scene_node.zig").SceneNode;
 const Scene = @import("../../scene/scene.zig").Scene;
@@ -16,9 +17,8 @@ pub const Materials = struct {
     window: nyan.Widgets.Window,
 
     selected_scene_node: *?*SceneNode,
-    main_scene: *Scene,
 
-    pub fn init(self: *Materials, selected_scene_node: *?*SceneNode, main_scene: *Scene) void {
+    pub fn init(self: *Materials, selected_scene_node: *?*SceneNode) void {
         self.window = .{
             .widget = .{
                 .init = windowInit,
@@ -30,7 +30,6 @@ pub const Materials = struct {
         };
 
         self.selected_scene_node = selected_scene_node;
-        self.main_scene = main_scene;
     }
 
     pub fn deinit(self: *Materials) void {}
@@ -83,13 +82,13 @@ pub const Materials = struct {
         if (nc.igButton("Add Material", .{ .x = 0, .y = 0 }))
             nc.igOpenPopup("add_material_popup", nc.ImGuiPopupFlags_None);
 
-        for (self.main_scene.materials.children.items) |mat|
+        for (Global.main_scene.materials.children.items) |mat|
             self.drawMaterial(mat);
 
         if (nc.igBeginPopup("add_material_popup", nc.ImGuiWindowFlags_None)) {
             for (mat_collection) |*mat_type| {
                 if (nc.igSelectable_Bool(mat_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
-                    addMaterial(self.main_scene, mat_type);
+                    addMaterial(&Global.main_scene, mat_type);
             }
 
             nc.igEndPopup();
