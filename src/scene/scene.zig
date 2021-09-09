@@ -1,5 +1,7 @@
 const std = @import("std");
 const nyan = @import("nyancore");
+const Global = @import("../global.zig");
+
 const SceneNode = @import("scene_node.zig").SceneNode;
 const NodeType = @import("../nodes/node_type.zig").NodeType;
 const NodeProperty = @import("../nodes/node_property.zig").NodeProperty;
@@ -110,6 +112,9 @@ pub const Scene = struct {
         node.initWithoutName(node_type, parent);
 
         _ = try file.readAll(node.buffer);
+
+        if (node_type.has_on_load)
+            node_type.on_load_fn(&node.buffer);
 
         var children_count: usize = try readU32(file);
         while (children_count > 0) : (children_count -= 1)

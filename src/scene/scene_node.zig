@@ -33,6 +33,9 @@ pub const SceneNode = struct {
         self.children.clearAndFree();
         self.children.deinit();
 
+        if (self.node_type.has_deinit)
+            self.node_type.deinit_fn(&self.buffer);
+
         nyan.app.allocator.free(self.buffer);
     }
 

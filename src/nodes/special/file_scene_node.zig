@@ -1,5 +1,8 @@
 usingnamespace @import("../node_utils.zig");
 
+const Global = @import("../../global.zig");
+const FileWatcher = @import("../../scene/file_watcher.zig").FileWatcher;
+
 pub const FileSceneNode: NodeType = .{
     .name = "File Scene Node",
     .function_defenition = "",
@@ -10,6 +13,12 @@ pub const FileSceneNode: NodeType = .{
 
     .has_edit_callback = true,
     .edit_callback = editCallback,
+
+    .has_deinit = true,
+    .deinit_fn = deinit,
+
+    .has_on_load = true,
+    .on_load_fn = on_load,
 };
 
 const Data = struct {
@@ -37,5 +46,46 @@ fn initData(buffer: *[]u8) void {
 }
 
 fn editCallback(buffer: *[]u8) void {
-    @panic("Not implemented =c");
+    const data: *Data = @ptrCast(*Data, buffer);
+
+    const last_path_slice: []const u8 = std.mem.sliceTo(&data.last_path, 0);
+    const file_path_slice: []const u8 = std.mem.sliceTo(&data.file_path, 0);
+
+    const fw: *FileWatcher = &Global.file_watcher;
+    if (fw.map.getPtr(last_path_slice)) |val|
+        val.ref_count -= 1;
+
+    if (!fw.map.contains(file_path_slice))
+        _ = fw.addExternFile(file_path_slice);
+
+    if (fw.map.getPtr(file_path_slice)) |val|
+        val.ref_count += 1;
+
+    std.mem.copy(u8, data.last_path[0..], data.file_path[0..]);
+}
+
+fn on_load(buffer: *[]u8) void {
+    const data: *Data = @ptrCast(*Data, buffer);
+    const fw: *FileWatcher = &Global.file_watcher;
+
+    const last_path_slice: []const u8 = std.mem.sliceTo(&data.last_path, 0);
+    const file_path_slice: []const u8 = std.mem.sliceTo(&data.file_path, 0);
+
+    if (!fw.map.contains(last_path_slice))
+        _ = fw.addExternFile(last_path_slice);
+
+    if (fw.map.getPtr(last_path_slice)) |val|
+        val.ref_count += 1;
+
+    std.mem.copy(u8, data.file_path[0..], data.last_path[0..]);
+}
+
+fn deinit(buffer: *[]u8) void {
+    const data: *Data = @ptrCast(*Data, buffer);
+    const fw: *FileWatcher = &Global.file_watcher;
+
+    const last_path_slice: []const u8 = std.mem.sliceTo(&data.last_path, 0);
+
+    if (fw.map.getPtr(last_path_slice)) |val|
+        val.ref_count -= 1;
 }

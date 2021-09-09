@@ -14,12 +14,16 @@ pub fn main() !void {
     var ui: UI = undefined;
     ui.init(allocator);
 
+    Global.file_watcher.init(allocator);
+    defer Global.file_watcher.deinit();
+
     try renderer.renderCtx.append(&ui.nyanui.system);
     try renderer.renderFns.append(nyan.UI.render);
 
     const systems: []*nyan.System = &[_]*nyan.System{
         &renderer.system,
         &ui.nyanui.system,
+        &Global.file_watcher.system,
     };
 
     nyan.initGlobalData(allocator);
