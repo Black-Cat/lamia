@@ -1,5 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
+const nm = @import("nyancore").Math;
+
 pub const Transform: NodeType = .{
     .name = "Transform",
     .function_defenition = "",
@@ -13,9 +15,9 @@ pub const Transform: NodeType = .{
 };
 
 const Data = struct {
-    rotation: [3]f32,
-    translation: [3]f32,
-    transform_matrix: [16]f32,
+    rotation: nm.vec3,
+    translation: nm.vec3,
+    transform_matrix: nm.mat4x4,
 };
 
 const properties = [_]NodeProperty{
@@ -34,18 +36,19 @@ const properties = [_]NodeProperty{
 fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
-    data.rotation = [_]f32{ 0.0, 0.0, 0.0 };
-    data.translation = [_]f32{ 0.0, 0.0, 0.0 };
-    data.transform_matrix = [_]f32{
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 0.0,
-    };
+    data.rotation = nm.Vec3.zeros();
+    data.translation = nm.Vec3.zeros();
+    data.transform_matrix = nm.Mat4x4.identity();
 
     buffer.* = std.mem.asBytes(data);
 }
 
 fn editCallback(buffer: *[]u8) void {
-    @panic("Not implemented =c");
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    data.transform_matrix = nm.Mat4x4.identity();
+    nm.Transform.rotateX(&data.transform_matrix, -data.rotation[0]);
+    nm.Transform.rotateY(&data.transform_matrix, -data.rotation[1]);
+    nm.Transform.rotateZ(&data.transform_matrix, -data.rotation[2]);
+    nm.Transform.translate(&data.transform_matrix, -data.translation);
 }
