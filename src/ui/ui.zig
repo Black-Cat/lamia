@@ -10,6 +10,7 @@ const Inspector = @import("widgets/inspector.zig").Inspector;
 const Materials = @import("widgets/materials.zig").Materials;
 const Monitor = @import("widgets/monitor.zig").Monitor;
 const SceneTree = @import("widgets/scene_tree.zig").SceneTree;
+const ViewportSpace = @import("widgets/viewport_space.zig").ViewportSpace;
 
 const mainColors = [_]nc.ImVec4{
     .{ .x = 0.251, .y = 0.471, .z = 0.435, .w = 1.0 }, // Viridian
@@ -29,8 +30,7 @@ pub const UI = struct {
     nyanui: nyan.UI,
 
     dockspace: nyan.Widgets.DockSpace,
-    dummy_windows: [1]nyan.Widgets.DummyWindow,
-    windows: [6]*nyan.Widgets.Window,
+    windows: [5]*nyan.Widgets.Window,
 
     nyanui_system_init_fn: fn (system: *nyan.System, app: *nyan.Application) void,
     nyanui_system_deinit_fn: fn (system: *nyan.System) void,
@@ -40,6 +40,7 @@ pub const UI = struct {
     materials: Materials,
     monitor: Monitor,
     scene_tree: SceneTree,
+    viewport_space: ViewportSpace,
 
     selected_scene_node: ?*SceneNode,
 
@@ -64,16 +65,13 @@ pub const UI = struct {
         self.scene_tree.init(&self.selected_scene_node);
         self.monitor.init();
         self.materials.init(&self.selected_scene_node);
+        self.viewport_space.init();
 
-        self.dummy_windows = [_]nyan.Widgets.DummyWindow{undefined};
-        self.dummy_windows[0].init("Viewport Space", allocator);
-
-        self.windows[0] = &self.dummy_windows[0].window;
-        self.windows[1] = &self.materials.window;
-        self.windows[2] = &self.inspector.window;
-        self.windows[3] = &self.scene_tree.window;
-        self.windows[4] = &self.console.window;
-        self.windows[5] = &self.monitor.window;
+        self.windows[0] = &self.materials.window;
+        self.windows[1] = &self.inspector.window;
+        self.windows[2] = &self.scene_tree.window;
+        self.windows[3] = &self.console.window;
+        self.windows[4] = &self.monitor.window;
     }
 
     fn systemInit(system: *nyan.System, app: *nyan.Application) void {
@@ -81,6 +79,8 @@ pub const UI = struct {
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
 
         self.nyanui_system_init_fn(system, app);
+
+        self.viewport_space.window.widget.init(&self.viewport_space.window.widget);
 
         for (self.windows) |w|
             w.widget.init(&w.widget);
@@ -92,6 +92,8 @@ pub const UI = struct {
 
         for (self.windows) |w|
             w.widget.deinit(&w.widget);
+
+        self.viewport_space.window.widget.deinit(&self.viewport_space.window.widget);
 
         self.dockspace.deinit();
 
