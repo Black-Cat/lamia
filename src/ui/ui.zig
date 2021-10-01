@@ -45,7 +45,7 @@ pub const UI = struct {
     selected_scene_node: ?*SceneNode,
 
     pub fn init(self: *UI, allocator: *Allocator) void {
-        self.nyanui.init("Nyan UI");
+        self.nyanui.init("Nyan UI", allocator);
         self.nyanui.paletteFn = UI.palette;
         self.nyanui.drawFn = UI.draw;
 
@@ -146,6 +146,7 @@ pub const UI = struct {
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
 
         self.drawMenuBar();
+        self.viewport_space.window.widget.draw(&self.viewport_space.window.widget);
         for (self.windows) |w|
             w.widget.draw(&w.widget);
     }

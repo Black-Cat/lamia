@@ -4,10 +4,14 @@ const std = @import("std");
 const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
 
+const Viewport = @import("viewport.zig").Viewport;
+
 pub const ViewportSpace = struct {
     window: nyan.Widgets.Window,
     viewport_window_class: nc.ImGuiWindowClass,
     dockspace_id: nc.ImGuiID,
+
+    viewports: [3]Viewport,
 
     pub fn init(self: *ViewportSpace) void {
         self.window = .{
@@ -39,6 +43,11 @@ pub const ViewportSpace = struct {
             .DockNodeFlagsOverrideSet = nc.ImGuiViewportFlags_None,
             .DockNodeFlagsOverrideClear = nc.ImGuiViewportFlags_None,
         };
+
+        self.viewports = [_]Viewport{undefined} ** 3;
+        self.viewports[0].init("Viewport 0", &self.viewport_window_class);
+        self.viewports[1].init("Viewport 1", &self.viewport_window_class);
+        self.viewports[2].init("Viewport 2", &self.viewport_window_class);
     }
 
     fn windowDeinit(widget: *Widget) void {}
@@ -54,14 +63,12 @@ pub const ViewportSpace = struct {
 
         nc.igDockSpace(self.dockspace_id, .{ .x = 0, .y = 0 }, nc.ImGuiDockNodeFlags_None, &self.viewport_window_class);
 
-        // for (self.viewports) |v| {
-        //  nc.igDockBuilderDockWindow(viewport_name, self.dockspace_id);
-        // }
-        // nc.igDockBuilderFinish(self.dockspace_id);
+        for (self.viewports) |v|
+            nc.igDockBuilderDockWindow(v.window.strId.ptr, self.dockspace_id);
+        nc.igDockBuilderFinish(self.dockspace_id);
 
-        //for (self.viewports) |v| {
-        //  v.draw()
-        //}
+        for (self.viewports) |*v|
+            v.window.widget.draw(&v.window.widget);
 
         nc.igEnd();
 
@@ -76,9 +83,8 @@ pub const ViewportSpace = struct {
 
         nc.igDockSpace(self.dockspace_id, .{ .x = 0, .y = 0 }, nc.ImGuiDockNodeFlags_None, &self.viewport_window_class);
 
-        //for (self.viewports) |v| {
-        //  v.draw()
-        //}
+        for (self.viewports) |*v|
+            v.window.widget.draw(&v.window.widget);
 
         nc.igEnd();
     }
