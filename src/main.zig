@@ -17,7 +17,7 @@ pub fn main() !void {
     Global.file_watcher.init(allocator);
     defer Global.file_watcher.deinit();
 
-    try renderer.render_graph.passes.append(&ui.nyanui.render_pass);
+    try nyan.global_render_graph.passes.append(&ui.nyanui.render_pass);
 
     try renderer.renderCtx.append(&ui.nyanui.system);
     try renderer.renderFns.append(nyan.UI.render);
