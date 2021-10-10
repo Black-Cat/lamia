@@ -48,9 +48,18 @@ pub const ViewportSpace = struct {
         self.viewports[0].init("Viewport 0", &self.viewport_window_class);
         self.viewports[1].init("Viewport 1", &self.viewport_window_class);
         self.viewports[2].init("Viewport 2", &self.viewport_window_class);
+
+        for (self.viewports) |*v|
+            v.window.widget.init(&v.window.widget);
     }
 
-    fn windowDeinit(widget: *Widget) void {}
+    fn windowDeinit(widget: *Widget) void {
+        const window: *Window = @fieldParentPtr(Window, "widget", widget);
+        const self: *ViewportSpace = @fieldParentPtr(ViewportSpace, "window", window);
+
+        for (self.viewports) |*v|
+            v.window.widget.deinit(&v.window.widget);
+    }
 
     fn windowFirstDraw(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
