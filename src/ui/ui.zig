@@ -65,7 +65,7 @@ pub const UI = struct {
         self.scene_tree.init(&self.selected_scene_node);
         self.monitor.init();
         self.materials.init(&self.selected_scene_node);
-        self.viewport_space.init();
+        self.viewport_space.init(&self.nyanui);
 
         self.windows[0] = &self.materials.window;
         self.windows[1] = &self.inspector.window;

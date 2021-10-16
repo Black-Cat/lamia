@@ -12,8 +12,9 @@ pub const ViewportSpace = struct {
     dockspace_id: nc.ImGuiID,
 
     viewports: [3]Viewport,
+    nyanui: *nyan.UI,
 
-    pub fn init(self: *ViewportSpace) void {
+    pub fn init(self: *ViewportSpace, nyanui: *nyan.UI) void {
         self.window = .{
             .widget = .{
                 .init = windowInit,
@@ -23,6 +24,7 @@ pub const ViewportSpace = struct {
             .open = true,
             .strId = "Viewport Space",
         };
+        self.nyanui = nyanui;
     }
 
     pub fn deinit(self: *ViewportSpace) void {}
@@ -45,9 +47,9 @@ pub const ViewportSpace = struct {
         };
 
         self.viewports = [_]Viewport{undefined} ** 3;
-        self.viewports[0].init("Viewport 0", &self.viewport_window_class);
-        self.viewports[1].init("Viewport 1", &self.viewport_window_class);
-        self.viewports[2].init("Viewport 2", &self.viewport_window_class);
+        self.viewports[0].init("Viewport 0", &self.viewport_window_class, self.nyanui);
+        self.viewports[1].init("Viewport 1", &self.viewport_window_class, self.nyanui);
+        self.viewports[2].init("Viewport 2", &self.viewport_window_class, self.nyanui);
 
         for (self.viewports) |*v|
             v.window.widget.init(&v.window.widget);
