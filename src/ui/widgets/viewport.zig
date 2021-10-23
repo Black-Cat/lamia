@@ -39,25 +39,27 @@ pub const Viewport = struct {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *Viewport = @fieldParentPtr(Viewport, "window", window);
 
-        self.viewport_texture.init("Viewport Texture", nyan.global_render_graph.in_flight, 128, 128, nyan.app.allocator);
+        const image_format: nyan.vk.Format = nyan.global_render_graph.final_swapchain.image_format;
+        self.viewport_texture.init("Viewport Texture", nyan.global_render_graph.in_flight, 128, 128, image_format, nyan.app.allocator);
         self.viewport_texture.alloc();
         nyan.global_render_graph.addViewportTexture(&self.viewport_texture);
 
-        self.render_pass.init("Viewport Render Pass", nyan.app.allocator);
-        self.render_pass.rg_pass.appendReadResource(&self.viewport_texture.rg_resource);
-        nyan.global_render_graph.passes.append(&self.render_pass.rg_pass) catch unreachable;
-
         self.createDescriptorPool();
-
         self.descriptor_sets = nyan.app.allocator.alloc(nyan.vk.DescriptorSet, nyan.global_render_graph.in_flight) catch unreachable;
         self.allocateDescriptorSets();
-
         createDescriptors(&self.viewport_texture.rg_resource);
+
+        self.render_pass.init("Viewport Render Pass", nyan.app.allocator, &self.viewport_texture);
+        self.render_pass.rg_pass.appendWriteResource(&self.viewport_texture.rg_resource);
+        self.render_pass.rg_pass.initFn(&self.render_pass.rg_pass);
+        nyan.global_render_graph.passes.append(&self.render_pass.rg_pass) catch unreachable;
     }
 
     fn windowDeinit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *Viewport = @fieldParentPtr(Viewport, "window", window);
+
+        self.render_pass.deinit();
 
         nyan.vkw.vkd.destroyDescriptorPool(nyan.vkw.vkc.device, self.descriptor_pool, null);
         self.viewport_texture.deinit();
@@ -75,9 +77,9 @@ pub const Viewport = struct {
 
         if (wasVisible != self.visible) {
             if (self.visible) {
-                self.render_pass.rg_pass.appendWriteResource(&nyan.global_render_graph.final_swapchain.rg_resource);
+                self.nyanui.render_pass.appendReadResource(&self.viewport_texture.rg_resource);
             } else {
-                self.render_pass.rg_pass.removeWriteResource(&nyan.global_render_graph.final_swapchain.rg_resource);
+                self.nyanui.render_pass.removeReadResource(&self.viewport_texture.rg_resource);
             }
             nyan.global_render_graph.needs_rebuilding = true;
         }
@@ -94,15 +96,12 @@ pub const Viewport = struct {
         const cur_height: u32 = @floatToInt(u32, @round(max_pos.y - min_pos.y));
 
         if (self.visible and (cur_width != self.viewport_texture.width or cur_height != self.viewport_texture.height)) {
-            self.viewport_texture.width = cur_width;
-            self.viewport_texture.height = cur_height;
-
-            self.viewport_texture.resize(&nyan.global_render_graph);
+            self.viewport_texture.resize(&nyan.global_render_graph, cur_width, cur_height);
             nyan.global_render_graph.changeResourceBetweenFrames(&self.viewport_texture.rg_resource, createDescriptors);
         }
 
         nc.igImage(
-            @ptrCast(*c_void, &self.descriptor_sets[nyan.global_render_graph.frame_index]),
+            @ptrCast(*c_void, &self.descriptor_sets[nyan.global_render_graph.image_index]),
             .{ .x = max_pos.x - min_pos.x, .y = max_pos.y - min_pos.y },
             .{ .x = 0, .y = 0 },
             .{ .x = 1, .y = 1 },
