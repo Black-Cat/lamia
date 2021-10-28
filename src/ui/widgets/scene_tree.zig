@@ -157,6 +157,7 @@ pub const SceneTree = struct {
     fn addNode(self: *SceneTree, node_type: *const NodeType) void {
         var node: *SceneNode = Global.main_scene.root.add();
         node.init(node_type, node_type.name, &Global.main_scene.root);
+        Global.main_scene.recompile();
     }
 
     fn addSelectedFlag(flag: nc.ImGuiTreeNodeFlags, node: *SceneNode, selected_node: ?*SceneNode) nc.ImGuiTreeNodeFlags {
@@ -226,6 +227,8 @@ pub const SceneTree = struct {
 
             self.drag_from = null;
             self.drop_to = null;
+
+            Global.main_scene.recompile();
         }
 
         if (self.parent_insert) |parent_insert| {
@@ -236,6 +239,8 @@ pub const SceneTree = struct {
 
             self.drag_from = null;
             self.parent_insert = null;
+
+            Global.main_scene.recompile();
         }
 
         if (self.clicked_node != null)
@@ -293,5 +298,6 @@ pub const SceneTree = struct {
         Global.main_scene.load(std.mem.sliceTo(&self.selected_file_path, 0)) catch {
             nyan.printError("Scene", "Error while loading scene");
         };
+        Global.main_scene.recompile();
     }
 };

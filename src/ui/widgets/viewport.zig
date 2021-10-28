@@ -3,6 +3,13 @@ const nc = nyan.c;
 const std = @import("std");
 const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
+const Global = @import("../../global.zig");
+
+const FragPushConstBlock = struct {
+    eye: [4]f32,
+    up: [4]f32,
+    forward: [4]f32,
+};
 
 pub const Viewport = struct {
     window: nyan.Widgets.Window,
@@ -16,6 +23,8 @@ pub const Viewport = struct {
 
     descriptor_pool: nyan.vk.DescriptorPool,
     descriptor_sets: []nyan.vk.DescriptorSet,
+
+    frag_push_const_block: FragPushConstBlock,
 
     pub fn init(self: *Viewport, comptime name: [:0]const u8, window_class: *nc.ImGuiWindowClass, nyanui: *nyan.UI) void {
         self.window = .{
@@ -49,7 +58,17 @@ pub const Viewport = struct {
         self.allocateDescriptorSets();
         createDescriptors(&self.viewport_texture.rg_resource);
 
-        self.render_pass.init("Viewport Render Pass", nyan.app.allocator, &self.viewport_texture);
+        self.render_pass.init(
+            "Viewport Render Pass",
+            nyan.app.allocator,
+            &self.viewport_texture,
+            &Global.main_scene.shader.?,
+            @sizeOf(FragPushConstBlock),
+            &self.frag_push_const_block,
+        );
+
+        Global.main_scene.rg_resource.registerOnChangeCallback(&self.render_pass.rg_pass, nyan.ScreenRenderPass.recreatePipelineOnShaderChange);
+
         self.render_pass.rg_pass.appendWriteResource(&self.viewport_texture.rg_resource);
         self.render_pass.rg_pass.initFn(&self.render_pass.rg_pass);
         nyan.global_render_graph.passes.append(&self.render_pass.rg_pass) catch unreachable;

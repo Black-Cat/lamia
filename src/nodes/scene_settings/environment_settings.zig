@@ -7,6 +7,8 @@ pub const EnvironmentSettings: NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+
+    .enterCommandFn = enterCommand,
 };
 
 const Data = struct {
@@ -41,4 +43,25 @@ fn initData(buffer: *[]u8) void {
     data.shadow_steps = 16;
 
     buffer.* = std.mem.asBytes(data);
+}
+
+fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+
+    comptime const format: []const u8 =
+        \\#define ENVIRONMENT_BACKGROUND_COLOR vec3({d:.5},{d:.5},{d:.5})
+        \\#define ENVIRONMENT_LIGHT_DIR vec3({d:.5},{d:.5},{d:.5})
+        \\#define ENVIRONMENT_SHADOW_STEPS {d}
+        \\
+    ;
+
+    return std.fmt.allocPrint(ctxt.allocator, format, .{
+        data.background_color[0],
+        data.background_color[1],
+        data.background_color[2],
+        data.light_dir[0],
+        data.light_dir[1],
+        data.light_dir[2],
+        data.shadow_steps,
+    }) catch unreachable;
 }

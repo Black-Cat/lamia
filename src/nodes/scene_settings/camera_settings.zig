@@ -7,6 +7,8 @@ pub const CameraSettings: NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+
+    .enterCommandFn = enterCommand,
 };
 
 const Data = struct {
@@ -48,4 +50,18 @@ fn initData(buffer: *[]u8) void {
     data.steps = 64;
 
     buffer.* = std.mem.asBytes(data);
+}
+
+fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+
+    comptime const format: []const u8 =
+        \\#define CAMERA_NEAR {d:.5}
+        \\#define CAMERA_FAR {d:.5}
+        \\#define CAMERA_FOV {d:.5}
+        \\#define CAMERA_STEPS {d}
+        \\
+    ;
+
+    return std.fmt.allocPrint(ctxt.allocator, format, .{ data.near, data.far, data.fov, data.steps }) catch unreachable;
 }

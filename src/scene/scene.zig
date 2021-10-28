@@ -6,6 +6,7 @@ const SceneNode = @import("scene_node.zig").SceneNode;
 const NodeType = @import("../nodes/node_type.zig").NodeType;
 const NodeProperty = @import("../nodes/node_property.zig").NodeProperty;
 const node_collection = @import("../nodes/node_collection.zig");
+const scene2shader = @import("scene2shader.zig").scene2shader;
 
 fn root_init(buffer: *[]u8) void {
     buffer.* = nyan.app.allocator.alloc(u8, 0) catch unreachable;
@@ -27,6 +28,9 @@ pub const Scene = struct {
     settings: SceneNode,
     materials: SceneNode,
 
+    shader: ?nyan.vk.ShaderModule,
+    rg_resource: nyan.RGResource,
+
     fn createRoots(self: *Scene) void {
         self.root.init(&RootType, "Root", null);
         self.settings.init(&RootType, "Settings", null);
@@ -42,10 +46,17 @@ pub const Scene = struct {
         }
 
         var default_material: *SceneNode = self.materials.add();
-        default_material.init(&node_collection.materials[0], "Default Material", &self.materials);
+        default_material.init(&node_collection.materials[1], "Default Material", &self.materials);
+
+        self.rg_resource.init("Scene Shader", nyan.app.allocator);
+        nyan.global_render_graph.resources.append(&self.rg_resource) catch unreachable;
     }
 
     pub fn deinit(self: *Scene) void {
+        nyan.vkw.vkd.destroyShaderModule(nyan.vkw.vkc.device, self.shader.?, null);
+
+        self.rg_resource.deinit();
+
         self.materials.deinit();
         self.settings.deinit();
         self.root.deinit();
@@ -139,5 +150,18 @@ pub const Scene = struct {
         try loadRoot(&self.root, &file);
         try loadRoot(&self.settings, &file);
         try loadRoot(&self.materials, &file);
+    }
+
+    pub fn recompile(self: *Scene) void {
+        if (self.shader) |sh|
+            nyan.vkw.vkd.destroyShaderModule(nyan.vkw.vkc.device, sh, null);
+
+        self.shader = scene2shader(self);
+
+        nyan.global_render_graph.changeResourceBetweenFrames(&self.rg_resource, rebuildRenderGraph);
+    }
+
+    fn rebuildRenderGraph(res: *nyan.RGResource) void {
+        nyan.global_render_graph.needs_rebuilding = true;
     }
 };

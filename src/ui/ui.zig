@@ -4,6 +4,7 @@ const nc = nyan.c;
 const Allocator = @import("std").mem.Allocator;
 const drawAboutDialog = @import("about.zig").drawAboutDialog;
 const SceneNode = @import("../scene/scene_node.zig").SceneNode;
+const Global = @import("../global.zig");
 
 const Console = @import("widgets/console.zig").Console;
 const Inspector = @import("widgets/inspector.zig").Inspector;
@@ -79,6 +80,8 @@ pub const UI = struct {
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
 
         self.nyanui_system_init_fn(system, app);
+
+        Global.main_scene.recompile();
 
         self.viewport_space.window.widget.init(&self.viewport_space.window.widget);
 

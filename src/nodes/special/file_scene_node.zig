@@ -19,9 +19,11 @@ pub const FileSceneNode: NodeType = .{
 
     .has_on_load = true,
     .on_load_fn = on_load,
+
+    .external = true,
 };
 
-const Data = struct {
+pub const Data = struct {
     const max_path_len: usize = 256;
     file_path: [max_path_len]u8,
     last_path: [max_path_len]u8,
@@ -46,7 +48,7 @@ fn initData(buffer: *[]u8) void {
 }
 
 fn editCallback(buffer: *[]u8) void {
-    const data: *Data = @ptrCast(*Data, buffer);
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const last_path_slice: []const u8 = std.mem.sliceTo(&data.last_path, 0);
     const file_path_slice: []const u8 = std.mem.sliceTo(&data.file_path, 0);
@@ -65,7 +67,7 @@ fn editCallback(buffer: *[]u8) void {
 }
 
 fn on_load(buffer: *[]u8) void {
-    const data: *Data = @ptrCast(*Data, buffer);
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
     const fw: *FileWatcher = &Global.file_watcher;
 
     const last_path_slice: []const u8 = std.mem.sliceTo(&data.last_path, 0);
@@ -81,7 +83,7 @@ fn on_load(buffer: *[]u8) void {
 }
 
 fn deinit(buffer: *[]u8) void {
-    const data: *Data = @ptrCast(*Data, buffer);
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
     const fw: *FileWatcher = &Global.file_watcher;
 
     const last_path_slice: []const u8 = std.mem.sliceTo(&data.last_path, 0);

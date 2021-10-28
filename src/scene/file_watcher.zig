@@ -18,6 +18,7 @@ pub const FileWatcher = struct {
     allocator: *Allocator,
     map: FileMap,
     toRemove: PathList,
+    timer: f64,
 
     pub fn init(self: *FileWatcher, allocator: *Allocator) void {
         self.system = .{
@@ -29,6 +30,7 @@ pub const FileWatcher = struct {
         self.allocator = allocator;
         self.map = FileMap.init(self.allocator);
         self.toRemove = PathList.init(self.allocator);
+        self.timer = 0.0;
     }
 
     pub fn deinit(self: *FileWatcher) void {
@@ -64,6 +66,11 @@ pub const FileWatcher = struct {
 
     fn systemUpdate(system: *nyan.System, elapsed_time: f64) void {
         const self: *FileWatcher = @fieldParentPtr(FileWatcher, "system", system);
+
+        self.timer += elapsed_time;
+        if (self.timer < 5.0)
+            return;
+        self.timer = 0.0;
 
         var it = self.map.iterator();
         while (it.next()) |entry| {

@@ -3,6 +3,7 @@ const nc = nyan.c;
 const std = @import("std");
 const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
+const Global = @import("../../global.zig");
 
 const SceneNode = @import("../../scene/scene_node.zig").SceneNode;
 
@@ -67,7 +68,11 @@ pub const Inspector = struct {
         for (node.node_type.properties) |*prop|
             edited = prop.drawFn(prop, &node.buffer) or edited;
 
-        if (edited and node.node_type.has_edit_callback)
-            node.node_type.edit_callback(&node.buffer);
+        if (edited) {
+            if (node.node_type.has_edit_callback) {
+                node.node_type.edit_callback(&node.buffer);
+            }
+            Global.main_scene.recompile();
+        }
     }
 };
