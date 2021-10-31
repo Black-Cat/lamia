@@ -63,5 +63,10 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
         \\
     ;
 
-    return std.fmt.allocPrint(ctxt.allocator, format, .{ data.near, data.far, data.fov, data.steps }) catch unreachable;
+    return std.fmt.allocPrint(ctxt.allocator, format, .{
+        data.near,
+        data.far,
+        std.math.tan(data.fov / 2.0 * (std.math.pi / 180.0)),
+        data.steps,
+    }) catch unreachable;
 }

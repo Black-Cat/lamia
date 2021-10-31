@@ -58,6 +58,12 @@ pub const Viewport = struct {
         self.allocateDescriptorSets();
         createDescriptors(&self.viewport_texture.rg_resource);
 
+        self.frag_push_const_block = .{
+            .eye = .{ 0.0, 0.0, -6.0, 1.0 },
+            .forward = .{ 0.0, 0.0, 1.0, 1.0 },
+            .up = .{ 0.0, 1.0, 0.0, 1.0 },
+        };
+
         self.render_pass.init(
             "Viewport Render Pass",
             nyan.app.allocator,

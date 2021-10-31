@@ -9,7 +9,7 @@ const SceneNode = @import("../../scene/scene_node.zig").SceneNode;
 const Scene = @import("../../scene/scene.zig").Scene;
 
 const NodeType = @import("../../nodes/node_type.zig").NodeType;
-const mat_collection = @import("../../nodes/node_collection.zig").materials;
+const node_collection = @import("../../nodes/node_collection.zig");
 
 const config_key_open: []const u8 = "ui_widgets_materials_open";
 
@@ -86,7 +86,7 @@ pub const Materials = struct {
             self.drawMaterial(mat);
 
         if (nc.igBeginPopup("add_material_popup", nc.ImGuiWindowFlags_None)) {
-            for (mat_collection) |*mat_type| {
+            for (node_collection.materials) |*mat_type| {
                 if (nc.igSelectable_Bool(mat_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
                     addMaterial(&Global.main_scene, mat_type);
             }

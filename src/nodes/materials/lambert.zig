@@ -42,7 +42,7 @@ fn initData(buffer: *[]u8) void {
 fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
-    comptime const format: []const u8 = "res = matLambert(l,n,vec3({d:.5},{d:.5},{d:.5}));";
+    const format: []const u8 = "res = matLambert(l,n,vec3({d:.5},{d:.5},{d:.5}));";
 
     return std.fmt.allocPrint(ctxt.allocator, format, .{ data.color[0], data.color[1], data.color[2] }) catch unreachable;
 }

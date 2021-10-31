@@ -39,7 +39,7 @@ fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     data.background_color = [_]f32{ 0.281, 0.281, 0.281 };
-    data.light_dir = [_]f32{ 0.57, 0.57, 0.57 };
+    data.light_dir = [_]f32{ 0.57, 0.57, -0.57 };
     data.shadow_steps = 16;
 
     buffer.* = std.mem.asBytes(data);

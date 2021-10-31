@@ -7,6 +7,7 @@ pub const CustomMaterial: NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .enterCommandFn = enterCommand,
 };
 
 const Data = struct {
@@ -40,4 +41,10 @@ fn initData(buffer: *[]u8) void {
     setBuffer(data.material_function[0..], "float nl = dot(n, l);\nres = vec3(max(0., nl));\n");
 
     buffer.* = std.mem.asBytes(data);
+}
+
+fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+
+    return std.fmt.allocPrint(ctxt.allocator, "{s}", .{@ptrCast([*c]const u8, &data.material_function)}) catch unreachable;
 }
