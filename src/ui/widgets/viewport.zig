@@ -1,9 +1,13 @@
 const nyan = @import("nyancore");
 const nc = nyan.c;
+const nm = nyan.Math;
 const std = @import("std");
 const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
 const Global = @import("../../global.zig");
+
+const Camera = @import("../../scene/camera.zig").Camera;
+const CameraController = @import("../arcball_camera_controller.zig").ArcballCameraController;
 
 const FragPushConstBlock = struct {
     eye: [4]f32,
@@ -15,6 +19,9 @@ pub const Viewport = struct {
     window: nyan.Widgets.Window,
     visible: bool,
     window_class: *nc.ImGuiWindowClass,
+
+    camera: Camera,
+    camera_controller: CameraController,
 
     nyanui: *nyan.UI,
 
@@ -40,6 +47,12 @@ pub const Viewport = struct {
         self.visible = false;
         self.window_class = window_class;
         self.nyanui = nyanui;
+        self.camera = .{
+            .position = .{ 0.0, 0.0, -6.0 },
+            .target = .{ 0.0, 0.0, 0.0 },
+            .up = .{ 0.0, 1.0, 0.0 },
+        };
+        self.camera_controller = .{ .camera = &self.camera };
     }
 
     pub fn deinit(self: *Viewport) void {}
@@ -57,12 +70,6 @@ pub const Viewport = struct {
         self.descriptor_sets = nyan.app.allocator.alloc(nyan.vk.DescriptorSet, nyan.global_render_graph.in_flight) catch unreachable;
         self.allocateDescriptorSets();
         createDescriptors(&self.viewport_texture.rg_resource);
-
-        self.frag_push_const_block = .{
-            .eye = .{ 0.0, 0.0, -6.0, 1.0 },
-            .forward = .{ 0.0, 0.0, 1.0, 1.0 },
-            .up = .{ 0.0, 1.0, 0.0, 1.0 },
-        };
 
         self.render_pass.init(
             "Viewport Render Pass",
@@ -134,7 +141,36 @@ pub const Viewport = struct {
             .{ .x = 0, .y = 0, .z = 0, .w = 0 },
         );
 
+        self.camera_controller.handleInput();
+        self.updatePushConstBlock();
+
         nc.igEnd();
+    }
+
+    fn updatePushConstBlock(self: *Viewport) void {
+        var forward: nm.vec3 = self.camera.target - self.camera.position;
+        forward = nm.Vec3.normalize(forward);
+
+        self.frag_push_const_block = .{
+            .eye = .{
+                self.camera.position[0],
+                self.camera.position[1],
+                self.camera.position[2],
+                0.0,
+            },
+            .up = .{
+                self.camera.up[0],
+                self.camera.up[1],
+                self.camera.up[2],
+                0.0,
+            },
+            .forward = .{
+                forward[0],
+                forward[1],
+                forward[2],
+                0.0,
+            },
+        };
     }
 
     fn createDescriptorPool(self: *Viewport) void {
