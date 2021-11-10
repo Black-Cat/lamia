@@ -6,6 +6,7 @@ const Window = nyan.Widgets.Window;
 const Global = @import("../../global.zig");
 
 const SceneNode = @import("../../scene/scene_node.zig").SceneNode;
+const GizmoStorage = @import("viewport_gizmos.zig").GizmoStorage;
 
 const config_key_open: []const u8 = "ui_widgets_inspector_open";
 
@@ -14,7 +15,9 @@ pub const Inspector = struct {
 
     selected_scene_node: *?*SceneNode,
 
-    pub fn init(self: *Inspector, selected_scene_node: *?*SceneNode) void {
+    gizmo_storage: *GizmoStorage,
+
+    pub fn init(self: *Inspector, selected_scene_node: *?*SceneNode, gizmo_storage: *GizmoStorage) void {
         self.window = .{
             .widget = .{
                 .init = windowInit,
@@ -26,6 +29,8 @@ pub const Inspector = struct {
         };
 
         self.selected_scene_node = selected_scene_node;
+
+        self.gizmo_storage = gizmo_storage;
     }
 
     pub fn deinit(self: *Inspector) void {}
@@ -49,6 +54,9 @@ pub const Inspector = struct {
 
         if (!window.open)
             return;
+
+        if (self.gizmo_storage.scene_node != self.selected_scene_node.*)
+            self.gizmo_storage.fillFromNode(self.selected_scene_node.*);
 
         _ = nc.igBegin(self.window.strId.ptr, &window.open, nc.ImGuiWindowFlags_None);
 

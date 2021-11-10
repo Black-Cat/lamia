@@ -8,6 +8,8 @@ const Global = @import("../../global.zig");
 
 const Camera = @import("../../scene/camera.zig").Camera;
 const CameraController = @import("../arcball_camera_controller.zig").ArcballCameraController;
+const drawGizmos = @import("viewport_gizmos.zig").drawGizmos;
+const GizmoStorage = @import("viewport_gizmos.zig").GizmoStorage;
 
 const FragPushConstBlock = struct {
     eye: [4]f32,
@@ -33,7 +35,9 @@ pub const Viewport = struct {
 
     frag_push_const_block: FragPushConstBlock,
 
-    pub fn init(self: *Viewport, comptime name: [:0]const u8, window_class: *nc.ImGuiWindowClass, nyanui: *nyan.UI) void {
+    gizmo_storage: *GizmoStorage,
+
+    pub fn init(self: *Viewport, comptime name: [:0]const u8, window_class: *nc.ImGuiWindowClass, nyanui: *nyan.UI, gizmos: *GizmoStorage) void {
         self.window = .{
             .widget = .{
                 .init = windowInit,
@@ -53,6 +57,7 @@ pub const Viewport = struct {
             .up = .{ 0.0, 1.0, 0.0 },
         };
         self.camera_controller = .{ .camera = &self.camera };
+        self.gizmo_storage = gizmos;
     }
 
     pub fn deinit(self: *Viewport) void {}
@@ -142,6 +147,7 @@ pub const Viewport = struct {
         );
 
         self.camera_controller.handleInput();
+        drawGizmos(self.gizmo_storage, &self.camera, min_pos, max_pos, window_pos);
         self.updatePushConstBlock();
 
         nc.igEnd();

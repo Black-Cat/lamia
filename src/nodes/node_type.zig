@@ -1,5 +1,7 @@
 const std = @import("std");
+const nm = @import("nyancore").Math;
 const NodeProperty = @import("node_property.zig").NodeProperty;
+const GizmoStorage = @import("../ui/widgets/viewport_gizmos.zig").GizmoStorage;
 
 pub const IterationContext = struct {
     pub const StackInfo = struct {
@@ -68,6 +70,9 @@ fn appendNoMatCheck(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, 
     return alloc.dupe(u8, exit_command) catch unreachable;
 }
 
+fn appendNoGizmos(buffer: *[]u8, gizmo_storage: *GizmoStorage) void {}
+fn dontModifyGizmos(buffer: *[]u8, points: []nm.vec4) void {}
+
 pub const NodeType = struct {
     name: []const u8,
     function_defenition: []const u8,
@@ -91,4 +96,8 @@ pub const NodeType = struct {
     exitCommandFn: fn (ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 = undefined,
 
     appendMatCheckFn: fn (exit_command: []const u8, buffer: *[]u8, mat_offset: usize, alloc: *std.mem.Allocator) []const u8 = appendNoMatCheck,
+
+    appendGizmosFn: fn (buffer: *[]u8, gizmo_storage: *GizmoStorage) void = appendNoGizmos,
+
+    modifyGizmoPointsFn: fn (buffer: *[]u8, points: []nm.vec4) void = dontModifyGizmos,
 };

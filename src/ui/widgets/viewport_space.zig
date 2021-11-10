@@ -5,6 +5,7 @@ const Widget = nyan.Widgets.Widget;
 const Window = nyan.Widgets.Window;
 
 const Viewport = @import("viewport.zig").Viewport;
+const GizmoStorage = @import("viewport_gizmos.zig").GizmoStorage;
 
 pub const ViewportSpace = struct {
     window: nyan.Widgets.Window,
@@ -13,8 +14,9 @@ pub const ViewportSpace = struct {
 
     viewports: [3]Viewport,
     nyanui: *nyan.UI,
+    gizmo_storage: *GizmoStorage,
 
-    pub fn init(self: *ViewportSpace, nyanui: *nyan.UI) void {
+    pub fn init(self: *ViewportSpace, nyanui: *nyan.UI, gizmos: *GizmoStorage) void {
         self.window = .{
             .widget = .{
                 .init = windowInit,
@@ -25,6 +27,7 @@ pub const ViewportSpace = struct {
             .strId = "Viewport Space",
         };
         self.nyanui = nyanui;
+        self.gizmo_storage = gizmos;
     }
 
     pub fn deinit(self: *ViewportSpace) void {}
@@ -47,9 +50,9 @@ pub const ViewportSpace = struct {
         };
 
         self.viewports = [_]Viewport{undefined} ** 3;
-        self.viewports[0].init("Viewport 0", &self.viewport_window_class, self.nyanui);
-        self.viewports[1].init("Viewport 1", &self.viewport_window_class, self.nyanui);
-        self.viewports[2].init("Viewport 2", &self.viewport_window_class, self.nyanui);
+        self.viewports[0].init("Viewport 0", &self.viewport_window_class, self.nyanui, self.gizmo_storage);
+        self.viewports[1].init("Viewport 1", &self.viewport_window_class, self.nyanui, self.gizmo_storage);
+        self.viewports[2].init("Viewport 2", &self.viewport_window_class, self.nyanui, self.gizmo_storage);
 
         for (self.viewports) |*v|
             v.window.widget.init(&v.window.widget);

@@ -11,7 +11,7 @@ pub const CameraSettings: NodeType = .{
     .enterCommandFn = enterCommand,
 };
 
-const Data = struct {
+pub const Data = struct {
     near: f32,
     far: f32,
     fov: f32,

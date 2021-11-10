@@ -1,7 +1,5 @@
 usingnamespace @import("../node_utils.zig");
 
-const nm = @import("nyancore").Math;
-
 pub const Transform: NodeType = .{
     .name = "Transform",
     .function_defenition = "",

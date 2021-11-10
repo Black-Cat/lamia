@@ -5,6 +5,7 @@ const Allocator = @import("std").mem.Allocator;
 const drawAboutDialog = @import("about.zig").drawAboutDialog;
 const SceneNode = @import("../scene/scene_node.zig").SceneNode;
 const Global = @import("../global.zig");
+const GizmoStorage = @import("widgets/viewport_gizmos.zig").GizmoStorage;
 
 const Console = @import("widgets/console.zig").Console;
 const Inspector = @import("widgets/inspector.zig").Inspector;
@@ -13,7 +14,7 @@ const Monitor = @import("widgets/monitor.zig").Monitor;
 const SceneTree = @import("widgets/scene_tree.zig").SceneTree;
 const ViewportSpace = @import("widgets/viewport_space.zig").ViewportSpace;
 
-const mainColors = [_]nc.ImVec4{
+pub const mainColors = [_]nc.ImVec4{
     .{ .x = 0.251, .y = 0.471, .z = 0.435, .w = 1.0 }, // Viridian
     .{ .x = 0.204, .y = 0.608, .z = 0.541, .w = 1.0 }, // ???
     .{ .x = 0.369, .y = 0.718, .z = 0.600, .w = 1.0 }, // Polished Pine
@@ -44,6 +45,7 @@ pub const UI = struct {
     viewport_space: ViewportSpace,
 
     selected_scene_node: ?*SceneNode,
+    gizmo_storage: GizmoStorage,
 
     pub fn init(self: *UI, allocator: *Allocator) void {
         self.nyanui.init("Nyan UI", allocator);
@@ -62,17 +64,20 @@ pub const UI = struct {
         self.selected_scene_node = null;
 
         self.console.init();
-        self.inspector.init(&self.selected_scene_node);
+        self.inspector.init(&self.selected_scene_node, &self.gizmo_storage);
         self.scene_tree.init(&self.selected_scene_node);
         self.monitor.init();
         self.materials.init(&self.selected_scene_node);
-        self.viewport_space.init(&self.nyanui);
+        self.viewport_space.init(&self.nyanui, &self.gizmo_storage);
 
         self.windows[0] = &self.materials.window;
         self.windows[1] = &self.inspector.window;
         self.windows[2] = &self.scene_tree.window;
         self.windows[3] = &self.console.window;
         self.windows[4] = &self.monitor.window;
+
+        self.gizmo_storage = undefined;
+        self.gizmo_storage.init(allocator);
     }
 
     fn systemInit(system: *nyan.System, app: *nyan.Application) void {
@@ -92,6 +97,8 @@ pub const UI = struct {
     fn systemDeinit(system: *nyan.System) void {
         const nyanui: *nyan.UI = @fieldParentPtr(nyan.UI, "system", system);
         const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
+
+        self.gizmo_storage.deinit();
 
         for (self.windows) |w|
             w.widget.deinit(&w.widget);

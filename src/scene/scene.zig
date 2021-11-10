@@ -28,6 +28,8 @@ pub const Scene = struct {
     settings: SceneNode,
     materials: SceneNode,
 
+    camera_settings: *SceneNode,
+
     shader: ?nyan.vk.ShaderModule,
     rg_resource: nyan.RGResource,
 
@@ -50,6 +52,13 @@ pub const Scene = struct {
 
         self.rg_resource.init("Scene Shader", nyan.app.allocator);
         nyan.global_render_graph.resources.append(&self.rg_resource) catch unreachable;
+
+        for (self.settings.children.items) |s| {
+            if (std.mem.eql(u8, s.node_type.name, "Camera Settings")) {
+                self.camera_settings = s;
+                break;
+            }
+        }
     }
 
     pub fn deinit(self: *Scene) void {
