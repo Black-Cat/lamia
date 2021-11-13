@@ -12,6 +12,8 @@ pub const Transform: NodeType = .{
 
     .has_edit_callback = true,
     .edit_callback = editCallback,
+
+    .modifyGizmoPointsFn = modifyGizmoPoints,
 };
 
 const Data = struct {
@@ -94,4 +96,13 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
 fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     ctxt.popPointName();
     return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+}
+
+fn modifyGizmoPoints(buffer: *[]u8, points: []nm.vec4) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    const inv: nm.mat4x4 = nm.Mat4x4.inverse(data.transform_matrix);
+
+    for (points) |*p|
+        p.* = nm.Mat4x4.mulv(inv, p.*);
 }

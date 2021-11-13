@@ -10,6 +10,7 @@ pub const Link: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
     .appendMatCheckFn = appendMatCheckSurface,
+    .appendGizmosFn = appendGizmos,
 };
 
 const Data = struct {
@@ -101,4 +102,38 @@ pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset
         data.enter_index,
         data.mat + mat_offset,
     }) catch unreachable;
+}
+
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    var gizmo: SizeGizmo = .{
+        .size = &data.length,
+        .dir = .{ 0.0, 1.0, 0.0 },
+        .offset_dist = null,
+        .offset_type = .direction,
+        .direction_type = .static,
+
+        .dir_points = undefined,
+        .offset_dir = undefined,
+        .offset_pos = undefined,
+    };
+    gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
+
+    gizmo.offset_dir = gizmo.dir;
+    gizmo.size = &data.inner_radius;
+    gizmo.offset_dist = &data.length;
+    gizmo.dir = .{ 1.0, 0.0, 0.0 };
+    gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
+
+    gizmo.offset_dir = nm.Vec3.negate(gizmo.offset_dir);
+    gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
+
+    gizmo.offset_dir = gizmo.dir;
+    gizmo.size = &data.outer_radius;
+    gizmo.offset_dist = &data.inner_radius;
+    gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
+
+    gizmo.offset_dir = nm.Vec3.negate(gizmo.offset_dir);
+    gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
 }

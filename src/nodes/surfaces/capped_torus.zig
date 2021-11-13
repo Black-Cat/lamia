@@ -10,6 +10,7 @@ pub const CappedTorus: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
     .appendMatCheckFn = appendMatCheckSurface,
+    .appendGizmosFn = appendGizmos,
 };
 
 const Data = struct {
@@ -102,5 +103,33 @@ pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset
         exit_command,
         data.enter_index,
         data.mat + mat_offset,
+    }) catch unreachable;
+}
+
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    gizmos_storage.size_gizmos.append(.{
+        .size = &data.inner_radius,
+        .offset_dist = null,
+        .offset_type = .direction,
+        .direction_type = .static,
+        .dir = .{ 0.0, 1.0, 0.0 },
+
+        .dir_points = undefined,
+        .offset_pos = undefined,
+        .offset_dir = undefined,
+    }) catch unreachable;
+
+    gizmos_storage.size_gizmos.append(.{
+        .size = &data.outer_radius,
+        .offset_dist = &data.inner_radius,
+        .offset_type = .direction,
+        .direction_type = .static,
+        .dir = .{ 0.0, 1.0, 0.0 },
+        .offset_dir = .{ 0.0, 1.0, 0.0 },
+
+        .dir_points = undefined,
+        .offset_pos = undefined,
     }) catch unreachable;
 }

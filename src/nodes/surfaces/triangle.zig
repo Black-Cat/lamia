@@ -10,12 +10,13 @@ pub const Triangle: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
     .appendMatCheckFn = appendMatCheckSurface,
+    .appendGizmosFn = appendGizmos,
 };
 
 const Data = struct {
-    point_a: [3]f32,
-    point_b: [3]f32,
-    point_c: [3]f32,
+    point_a: nm.vec3,
+    point_b: nm.vec3,
+    point_c: nm.vec3,
 
     enter_index: usize,
     enter_stack: usize,
@@ -70,16 +71,16 @@ const function_defenition: []const u8 =
 fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
-    data.point_a = [_]f32{ 0.0, 0.0, 0.0 };
-    data.point_b = [_]f32{ 0.5, 0.5, 0.0 };
-    data.point_c = [_]f32{ 1.0, 0.0, 0.0 };
+    data.point_a = .{ 0.0, 0.0, 0.0 };
+    data.point_b = .{ 0.5, 0.5, 0.0 };
+    data.point_c = .{ 1.0, 0.0, 0.0 };
     data.mat = 0;
 
     buffer.* = std.mem.asBytes(data);
 }
 
 fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
@@ -89,7 +90,7 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
 }
 
 fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     const format: []const u8 = "float d{d} = sdTriangle({s},vec3({d:.5},{d:.5},{d:.5}),vec3({d:.5},{d:.5},{d:.5}),vec3({d:.5},{d:.5},{d:.5}));";
 
@@ -113,7 +114,7 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
 }
 
 pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: *std.mem.Allocator) []const u8 {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     const format: []const u8 = "{s}if(d{d}<MAP_EPS)return matToColor({d}.,l,n,v);";
     return std.fmt.allocPrint(allocator, format, .{
@@ -121,4 +122,12 @@ pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset
         data.enter_index,
         data.mat + mat_offset,
     }) catch unreachable;
+}
+
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_a }) catch unreachable;
+    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_b }) catch unreachable;
+    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_c }) catch unreachable;
 }

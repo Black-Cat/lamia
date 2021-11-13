@@ -17,7 +17,7 @@ pub const SizeGizmo = struct {
 
     dir: nm.vec3,
     direction_type: DirectionType,
-    dir_points: [2]*nm.vec3,
+    dir_points: [2]nm.vec3,
 
     offset_dist: ?*f32,
     offset_type: OffsetType,
@@ -78,28 +78,28 @@ pub const GizmoStorage = struct {
     }
 };
 
-pub const InteractionInfo = struct {
-    draw_list: *nc.ImDrawList = undefined,
+const InteractionInfo = struct {
+    draw_list: *nc.ImDrawList,
 
-    camera: *Camera = undefined,
-    viewport: nm.vec4 = undefined,
+    camera: *Camera,
+    viewport: nm.vec4,
 
-    center: nm.vec2 = undefined,
-    original_point: nm.vec2 = undefined,
-    center3: nm.vec3 = undefined,
-    original_point3: nm.vec3 = undefined,
-    direction: nm.vec3 = undefined,
+    center: nm.vec2,
+    original_point: nm.vec2,
+    center3: nm.vec3,
+    original_point3: nm.vec3,
+    direction: nm.vec3,
 
-    view_mat: nm.mat4x4 = undefined,
-    persp_mat: nm.mat4x4 = undefined,
+    view_mat: nm.mat4x4,
+    persp_mat: nm.mat4x4,
 
-    original_value: f32 = undefined,
-    original_value3: nm.vec3 = undefined,
+    original_value: f32,
+    original_value3: nm.vec3,
 
-    value: *f32 = undefined,
-    value3: *nm.vec3 = undefined,
+    value: *f32,
+    value3: *nm.vec3,
 
-    interactFn: ?fn (interaction_info: *InteractionInfo) void = null,
+    interactFn: ?fn (interaction_info: *InteractionInfo) void,
 };
 
 fn transformPoints(gizmos: *GizmoStorage, camera: *Camera, interaction_info: *InteractionInfo) void {
@@ -118,7 +118,7 @@ fn transformPoints(gizmos: *GizmoStorage, camera: *Camera, interaction_info: *In
         points_count += 1;
 
         if (sg.direction_type == .cross) {
-            const dir_vec: nm.vec3 = sg.dir_points[1].* - sg.dir_points[0].*;
+            const dir_vec: nm.vec3 = sg.dir_points[1] - sg.dir_points[0];
             var temp: nm.vec3 = .{ 0.0, 0.0, 1.0 };
             if (dir_vec[0] == temp[0] and dir_vec[1] == temp[1])
                 temp[0] = 1.0;
@@ -207,6 +207,7 @@ fn interactChangeSize(interaction_info: *InteractionInfo) void {
     const view_proj: nm.mat4x4 = nm.Mat4x4.mul(interaction_info.persp_mat, interaction_info.view_mat);
 
     const mouse_pos_world: nm.vec3 = nm.Mat4x4.unproject(mouse_pos, view_proj, interaction_info.viewport);
+    std.debug.print("{d}\n", .{mouse_pos_world});
 
     const camera_dir: nm.vec3 = nm.Vec3.normalize(mouse_pos_world - interaction_info.camera.position);
 
@@ -295,107 +296,6 @@ fn drawSizeGizmos(point_offset: *usize, gizmos: *GizmoStorage, interaction_info:
     point_offset.* += gizmos.size_gizmos.items.len * 3;
 }
 
-fn interactChangePos(interaction_info: *InteractionInfo) void {
-    const io: *nc.ImGuiIO = nc.igGetIO();
-    const mouse_pos: nm.vec3 = .{ io.MousePos.x, io.MousePos.y, 0.0 };
-
-    const view_proj: nm.mat4x4 = nm.Mat4x4.mul(interaction_info.persp_mat, interaction_info.view_mat);
-
-    const mouse_pos_world: nm.vec3 = nm.Mat4x4.unproject(mouse_pos, view_proj, interaction_info.viewport);
-
-    const camera_dir: nm.vec3 = nm.Vec3.normalize(mouse_pos_world - interaction_info.camera.position);
-
-    const intersection: f32 = solveLineLineIntersection(interaction_info.value3.*, interaction_info.direction, interaction_info.camera.position, camera_dir);
-
-    const offset: nm.vec3 = interaction_info.direction * @splat(3, intersection - interaction_info.original_value);
-    interaction_info.value3.* += offset;
-}
-
-fn drawTranslationAxis(p: [*]nm.vec4, gizmo: *TranslationGizmo, interaction_info: *InteractionInfo) void {
-    const centers: [4]nm.vec2 = .{
-        .{
-            interaction_info.viewport[0] + interaction_info.viewport[2] * p[1][0],
-            interaction_info.viewport[1] + interaction_info.viewport[3] * p[1][1],
-        },
-        .{
-            interaction_info.viewport[0] + interaction_info.viewport[2] * p[2][0],
-            interaction_info.viewport[1] + interaction_info.viewport[3] * p[2][1],
-        },
-        .{
-            interaction_info.viewport[0] + interaction_info.viewport[2] * p[3][0],
-            interaction_info.viewport[1] + interaction_info.viewport[3] * p[3][1],
-        },
-        .{
-            interaction_info.viewport[0] + interaction_info.viewport[2] * p[0][0],
-            interaction_info.viewport[1] + interaction_info.viewport[3] * p[0][1],
-        },
-    };
-
-    const io: *nc.ImGuiIO = nc.igGetIO();
-    const mouse_pos: nm.vec2 = .{ io.MousePos.x, io.MousePos.y };
-
-    const mouse_dir: nm.vec2 = mouse_pos - centers[3];
-
-    var dist: nm.vec3 = undefined;
-    var dist_proj: nm.vec3 = undefined;
-    var i: usize = 0;
-    while (i < 3) : (i += 1) {
-        var axis_dir: nm.vec2 = centers[i] - centers[3];
-
-        const t: f32 = nm.clamp_zo(nm.Vec2.dot(mouse_dir, axis_dir) / nm.Vec2.dot(axis_dir, axis_dir));
-
-        axis_dir *= @splat(2, t);
-        axis_dir = mouse_dir - axis_dir;
-
-        dist[i] = nm.Vec2.norm2(axis_dir);
-        dist_proj[i] = t;
-    }
-
-    var hovered_ind: usize = 0;
-    i = 1;
-    while (i < 3) : (i += 1) {
-        if (dist[i] < dist[hovered_ind])
-            hovered_ind = i;
-    }
-
-    const hovered: bool = dist[hovered_ind] <= 8.0 * 8.0;
-
-    i = 0;
-    while (i < 3) : (i += 1) {
-        const col: nc.ImVec4 = .{
-            .x = @intToFloat(f32, @boolToInt(i == 0)),
-            .y = @intToFloat(f32, @boolToInt(i == 1)),
-            .z = @intToFloat(f32, @boolToInt(i == 2)),
-            .w = 1.0,
-        };
-        const col32 = nc.igColorConvertFloat4ToU32(col);
-
-        nc.ImDrawList_AddLine(
-            interaction_info.draw_list,
-            .{ .x = centers[3][0], .y = centers[3][1] },
-            .{ .x = centers[i][0], .y = centers[i][1] },
-            col32,
-            if (hovered and hovered_ind == i) 3.0 else 1.0,
-        );
-    }
-
-    if (io.MouseDown[0] and interaction_info.interactFn == null and hovered) {
-        interaction_info.center = centers[3];
-        interaction_info.original_point = centers[hovered_ind];
-
-        interaction_info.center3 = gizmo.pos.*;
-        interaction_info.direction[0] = @intToFloat(f32, @boolToInt(hovered_ind == 0));
-        interaction_info.direction[1] = @intToFloat(f32, @boolToInt(hovered_ind == 1));
-        interaction_info.direction[2] = @intToFloat(f32, @boolToInt(hovered_ind == 2));
-        interaction_info.original_point3 = interaction_info.center3 + interaction_info.direction;
-
-        interaction_info.original_value3 = interaction_info.center3;
-        interaction_info.value3 = gizmo.pos;
-        interaction_info.original_value = dist_proj[hovered_ind];
-        interaction_info.interactFn = interactChangePos;
-    }
-}
-
 fn drawTranslationGizmos(point_offset: *usize, gizmos: *GizmoStorage, interaction_info: *InteractionInfo) void {
     for (gizmos.translation_gizmos.items) |*tg, ind| {
         const i: usize = point_offset.* + 4 * ind;
@@ -404,11 +304,14 @@ fn drawTranslationGizmos(point_offset: *usize, gizmos: *GizmoStorage, interactio
     point_offset.* += gizmos.translation_gizmos.items.len * 4;
 }
 
-pub fn drawGizmos(gizmos: *GizmoStorage, interaction_info: *InteractionInfo, camera: *Camera, min_pos: nc.ImVec2, max_pos: nc.ImVec2, window_pos: nc.ImVec2) void {
+pub fn drawGizmos(gizmos: *GizmoStorage, camera: *Camera, min_pos: nc.ImVec2, max_pos: nc.ImVec2, window_pos: nc.ImVec2) void {
     if (gizmos.points_to_transform.items.len == 0)
         return;
 
+    var interaction_info: InteractionInfo = undefined;
+
     interaction_info.camera = camera;
+    interaction_info.interactFn = null;
 
     interaction_info.draw_list = nc.igGetWindowDrawList();
     interaction_info.viewport[0] = window_pos.x + min_pos.x;
@@ -416,18 +319,18 @@ pub fn drawGizmos(gizmos: *GizmoStorage, interaction_info: *InteractionInfo, cam
     interaction_info.viewport[2] = max_pos.x - min_pos.x;
     interaction_info.viewport[3] = max_pos.y - min_pos.y;
 
-    transformPoints(gizmos, camera, interaction_info);
+    transformPoints(gizmos, camera, &interaction_info);
 
     var point_offset: usize = 0;
-    drawSizeGizmos(&point_offset, gizmos, interaction_info);
-    drawTranslationGizmos(&point_offset, gizmos, interaction_info);
+    drawSizeGizmos(&point_offset, gizmos, &interaction_info);
+    drawTranslationGizmos(&point_offset, gizmos, &interaction_info);
 
     const io: *nc.ImGuiIO = nc.igGetIO();
     if (!io.MouseDown[0])
         interaction_info.interactFn = null;
 
     if (interaction_info.interactFn) |interactFn| {
-        interactFn(interaction_info);
+        interactFn(&interaction_info);
         Global.main_scene.recompile();
     }
 }

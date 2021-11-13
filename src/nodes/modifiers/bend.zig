@@ -9,6 +9,7 @@ pub const Bend: NodeType = .{
     .init_data_fn = initData,
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
+    .modifyGizmoPointsFn = modifyGizmoPoints,
 };
 
 const Data = struct {
@@ -43,7 +44,7 @@ fn initData(buffer: *[]u8) void {
 }
 
 fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     const next_point: []const u8 = std.fmt.allocPrint(ctxt.allocator, "p{d}", .{iter}) catch unreachable;
 
@@ -58,4 +59,19 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
 fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     ctxt.popPointName();
     return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+}
+
+fn modifyGizmoPoints(buffer: *[]u8, points: []nm.vec4) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    const k: f32 = data.power;
+
+    for (points) |*p| {
+        const c: f32 = @cos(k * p.*[0]);
+        const s: f32 = @sin(k * p.*[0]);
+        const m: nm.mat2x2 = .{ .{ c, s }, .{ -s, c } };
+        const q: nm.vec2 = nm.Mat2x2.mulv(m, .{ p.*[0], p.*[1] });
+        p.*[0] = q[0];
+        p.*[1] = q[1];
+    }
 }

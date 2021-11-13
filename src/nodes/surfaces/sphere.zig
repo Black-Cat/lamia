@@ -10,6 +10,7 @@ pub const Sphere: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
     .appendMatCheckFn = appendMatCheckSurface,
+    .appendGizmosFn = appendGizmos,
 };
 
 const Data = struct {
@@ -84,4 +85,28 @@ pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset
         data.enter_index,
         data.mat + mat_offset,
     }) catch unreachable;
+}
+
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    var i: usize = 0;
+    while (i < 3) : (i += 1) {
+        const gizmo: SizeGizmo = .{
+            .size = &data.radius,
+            .dir = .{
+                @intToFloat(f32, @boolToInt(i == 0)),
+                @intToFloat(f32, @boolToInt(i == 1)),
+                @intToFloat(f32, @boolToInt(i == 2)),
+            },
+            .offset_dist = null,
+            .offset_type = .direction,
+            .direction_type = .static,
+
+            .dir_points = undefined,
+            .offset_dir = undefined,
+            .offset_pos = undefined,
+        };
+        gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
+    }
 }

@@ -10,6 +10,7 @@ pub const RoundedCylinder: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
     .appendMatCheckFn = appendMatCheckSurface,
+    .appendGizmosFn = appendGizmos,
 };
 
 const Data = struct {
@@ -101,4 +102,25 @@ pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset
         data.enter_index,
         data.mat + mat_offset,
     }) catch unreachable;
+}
+
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    var gizmo: SizeGizmo = .{
+        .size = &data.diameter,
+        .offset_type = .direction,
+        .direction_type = .static,
+        .offset_dist = null,
+        .dir = .{ 1.0, 0.0, 0.0 },
+
+        .offset_dir = undefined,
+        .offset_pos = undefined,
+        .dir_points = undefined,
+    };
+    gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
+
+    gizmo.size = &data.height;
+    gizmo.dir = .{ 0.0, 1.0, 0.0 };
+    gizmos_storage.size_gizmos.append(gizmo) catch unreachable;
 }
