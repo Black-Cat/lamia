@@ -143,7 +143,7 @@ pub const Viewport = struct {
         }
 
         nc.igImage(
-            @ptrCast(*c_void, &self.descriptor_sets[nyan.global_render_graph.image_index]),
+            @ptrCast(*c_void, &self.descriptor_sets[nyan.global_render_graph.frame_index]),
             .{ .x = max_pos.x - min_pos.x, .y = max_pos.y - min_pos.y },
             .{ .x = 0, .y = 0 },
             .{ .x = 1, .y = 1 },
