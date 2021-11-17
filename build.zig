@@ -7,17 +7,18 @@ const Builder = std.build.Builder;
 pub fn build(b: *Builder) void {
     var lamia = b.addExecutable("lamia", "src/main.zig");
 
+    const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
+    lamia.setTarget(target);
     lamia.setBuildMode(mode);
     lamia.linkSystemLibrary("c");
-    lamia.linkSystemLibrary("glfw");
     lamia.addPackage(.{
         .name = "nyancore",
         .path = "nyancore/src/main.zig",
     });
 
-    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", true);
+    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", false);
 
     lamia.linkLibrary(nyancoreLib);
     lamia.step.dependOn(&nyancoreLib.step);
