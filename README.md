@@ -11,7 +11,11 @@ uses [nyancore](https://github.com/Black-Cat/nyancore)
 * Vulkan SDK (for developing, optional)
 
 ### How to build?
+Clone repository with all submodules
+```git clone --recurse-submodules git@github.com:Black-Cat/lamia.git```
+
 Cross compilation is available
+
 Release for windows is build with `zig build -Dtarget=x86_64-windows-gnu -Drelease-fast=true`
 
 #### Linux
