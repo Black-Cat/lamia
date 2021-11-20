@@ -1,2 +1,39 @@
 # lamia
-sdf editor
+Small sdf editor
+
+uses [nyancore](https://github.com/Black-Cat/nyancore)
+
+![small_lamia](https://user-images.githubusercontent.com/10657551/142719390-d5692410-8b83-4eca-add8-772bfc73a364.png)
+
+### Requirements
+
+* zig 0.8
+* Vulkan SDK (for developing, optional)
+
+### How to build?
+Cross compilation is available
+Release for windows is build with `zig build -Dtarget=x86_64-windows-gnu -Drelease-fast=true`
+
+#### Linux
+```
+zig build
+```
+#### Windows
+```
+zig build -Dtarget=x86_64-windows-gnu
+```
+
+### Hot to run?
+
+#### Linux
+```
+zig build run
+```
+#### Windows
+```
+zig build -Dtarget=x86_64-windows-gnu run
+```
+
+#### Feedback
+
+Create an issue here, or send email to iblackcatw(at)gmail.com or discord `Black Cat!#5337`
