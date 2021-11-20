@@ -81,9 +81,6 @@ pub const ViewportSpace = struct {
             nc.igDockBuilderDockWindow(v.window.strId.ptr, self.dockspace_id);
         nc.igDockBuilderFinish(self.dockspace_id);
 
-        for (self.viewports) |*v|
-            v.window.widget.draw(&v.window.widget);
-
         nc.igEnd();
 
         widget.draw = windowDraw;
