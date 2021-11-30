@@ -49,6 +49,7 @@ pub const surfaces = [_]NodeType{
     @import("surfaces/capsule.zig").Capsule,
     @import("surfaces/cone.zig").Cone,
     @import("surfaces/ellipsoid.zig").Ellipsoid,
+    @import("surfaces/hexagon.zig").Hexagon,
     @import("surfaces/hexagonal_prism.zig").HexagonalPrism,
     @import("surfaces/infinite_cone.zig").InfiniteCone,
     @import("surfaces/infinite_cylinder.zig").InfiniteCylinder,
