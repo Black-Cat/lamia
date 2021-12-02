@@ -14,8 +14,8 @@ pub const HexagonalPrism: NodeType = .{
 };
 
 const Data = struct {
-    height_horizontal: f32,
-    height_vertical: f32,
+    radius: f32,
+    height: f32,
 
     enter_index: usize,
     enter_stack: usize,
@@ -25,13 +25,13 @@ const Data = struct {
 const properties = [_]NodeProperty{
     .{
         .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "height_horizontal"),
-        .name = "Horizontal Height",
+        .offset = @byteOffsetOf(Data, "radius"),
+        .name = "Radius",
     },
     .{
         .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "height_vertical"),
-        .name = "Vertical Height",
+        .offset = @byteOffsetOf(Data, "height"),
+        .name = "Height",
     },
     .{
         .drawFn = drawMaterialProperty,
@@ -42,10 +42,10 @@ const properties = [_]NodeProperty{
 
 const function_defenition: []const u8 =
     \\float sdHexagonalPrism(vec3 p, vec2 h){
-    \\  const vec3 k = vec3(-.8660254,.5,.57735);
+    \\  const vec2 k = vec2(-.8660254,.5);
     \\  p = abs(p);
-    \\  p.xy -= 2.0 * min(dot(k.xy, p.xy), 0.)*k.xy;
-    \\  vec2 d = vec2(length(p.xy-vec2(clamp(p.x,-k.z*h.x,k.z*h.x),h.x))*sign(p.y-h.x),p.z-h.y);
+    \\  p.xz -= 2.0 * min(dot(k.xy, p.xz), 0.)*k.xy;
+    \\  vec2 d = vec2(length(p.xz-vec2(clamp(p.x,-.5*h.x,.5*h.x),h.x*-k.x))*sign(p.z-h.x*-k.x),p.y-h.y);
     \\  return min(max(d.x,d.y),0.) + length(max(d,0.));
     \\}
     \\
@@ -54,8 +54,8 @@ const function_defenition: []const u8 =
 fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
-    data.height_horizontal = 0.5;
-    data.height_vertical = 1.0;
+    data.radius = 1.0;
+    data.height = 1.0;
     data.mat = 0;
 
     buffer.* = std.mem.asBytes(data);
@@ -79,8 +79,8 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     const res: []const u8 = std.fmt.allocPrint(ctxt.allocator, format, .{
         data.enter_index,
         ctxt.cur_point_name,
-        data.height_horizontal,
-        data.height_vertical,
+        2.0 * data.radius,
+        data.height,
     }) catch unreachable;
 
     ctxt.dropPreviousValueIndexes(data.enter_stack);
@@ -105,11 +105,11 @@ pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
     var i: usize = 0;
     while (i < 2) : (i += 1) {
         const gizmo: SizeGizmo = .{
-            .size = if (i == 0) &data.height_horizontal else &data.height_vertical,
+            .size = if (i == 0) &data.radius else &data.height,
             .dir = .{
                 @intToFloat(f32, @boolToInt(i == 0)),
-                0.0,
                 @intToFloat(f32, @boolToInt(i == 1)),
+                0.0,
             },
             .offset_dist = null,
             .offset_type = .direction,

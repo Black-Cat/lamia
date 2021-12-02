@@ -19,6 +19,7 @@ pub const materials = [_]NodeType{
 pub const modifiers = [_]NodeType{
     @import("modifiers/bend.zig").Bend,
     @import("modifiers/displacement.zig").Displacement,
+    @import("modifiers/displacement_noise.zig").DisplacementNoise,
     @import("modifiers/elongate.zig").Elongate,
     @import("modifiers/finite_repetition.zig").FiniteRepetition,
     @import("modifiers/infinite_repetition.zig").InfiniteRepetition,
@@ -49,7 +50,6 @@ pub const surfaces = [_]NodeType{
     @import("surfaces/capsule.zig").Capsule,
     @import("surfaces/cone.zig").Cone,
     @import("surfaces/ellipsoid.zig").Ellipsoid,
-    @import("surfaces/hexagon.zig").Hexagon,
     @import("surfaces/hexagonal_prism.zig").HexagonalPrism,
     @import("surfaces/infinite_cone.zig").InfiniteCone,
     @import("surfaces/infinite_cylinder.zig").InfiniteCylinder,
