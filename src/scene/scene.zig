@@ -39,6 +39,11 @@ pub const Scene = struct {
         self.materials.init(&RootType, "Materials", null);
     }
 
+    pub fn create_shader_resource(self: *Scene) void {
+        self.rg_resource.init("Scene Shader", nyan.app.allocator);
+        nyan.global_render_graph.resources.append(&self.rg_resource) catch unreachable;
+    }
+
     pub fn init(self: *Scene) void {
         self.createRoots();
 
@@ -50,8 +55,7 @@ pub const Scene = struct {
         var default_material: *SceneNode = self.materials.add();
         default_material.init(&node_collection.materials[1], "Default Material", &self.materials);
 
-        self.rg_resource.init("Scene Shader", nyan.app.allocator);
-        nyan.global_render_graph.resources.append(&self.rg_resource) catch unreachable;
+        self.create_shader_resource();
 
         for (self.settings.children.items) |s| {
             if (std.mem.eql(u8, s.node_type.name, "Camera Settings")) {
@@ -153,7 +157,10 @@ pub const Scene = struct {
         const file: std.fs.File = try cwd.openFile(path, .{ .read = true });
         defer file.close();
 
-        self.deinit();
+        self.materials.deinit();
+        self.settings.deinit();
+        self.root.deinit();
+
         self.createRoots();
 
         try loadRoot(&self.root, &file);
