@@ -114,6 +114,15 @@ pub const Scene = struct {
         try saveRoot(&self.materials, &file);
     }
 
+    pub fn saveNyanSdf(self: *Scene, path: []const u8) !void {
+        const cwd: std.fs.Dir = std.fs.cwd();
+        const file: std.fs.File = try cwd.createFile(path, .{ .read = true, .truncate = true });
+        defer file.close();
+
+        try saveRoot(&self.materials, &file);
+        try saveRoot(&self.root, &file);
+    }
+
     fn readU32(file: *const std.fs.File) std.os.ReadError!usize {
         var temp: [@sizeOf(u32)]u8 = undefined;
         _ = try file.readAll(temp[0..]);

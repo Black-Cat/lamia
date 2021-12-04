@@ -3,6 +3,7 @@ const nc = nyan.c;
 
 const Allocator = @import("std").mem.Allocator;
 const drawAboutDialog = @import("about.zig").drawAboutDialog;
+const drawExportSdfDialog = @import("export_sdf.zig").drawExportSdfDialog;
 const SceneNode = @import("../scene/scene_node.zig").SceneNode;
 const Global = @import("../global.zig");
 const GizmoStorage = @import("widgets/viewport_gizmos.zig").GizmoStorage;
@@ -131,6 +132,7 @@ pub const UI = struct {
 
     fn drawMenuBar(self: *UI) void {
         var open_about_popup: bool = false;
+        var open_export_sdf_popup: bool = false;
         if (nc.igBeginMenuBar()) {
             if (nc.igBeginMenu("Windows", true)) {
                 for (self.windows) |w|
@@ -143,13 +145,21 @@ pub const UI = struct {
                 nc.igEndMenu();
             }
 
+            if (nc.igBeginMenu("Export", true)) {
+                open_export_sdf_popup = true;
+                nc.igEndMenu();
+            }
+
             nc.igEndMenuBar();
         }
 
         if (open_about_popup)
             nc.igOpenPopup("About", nc.ImGuiPopupFlags_None);
-
         drawAboutDialog();
+
+        if (open_export_sdf_popup)
+            nc.igOpenPopup("Export to NyanSDF", nc.ImGuiPopupFlags_None);
+        drawExportSdfDialog();
     }
 
     fn draw(nyanui: *nyan.UI) void {
