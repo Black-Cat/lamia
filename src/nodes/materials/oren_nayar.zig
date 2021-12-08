@@ -10,10 +10,7 @@ pub const OrenNayar: NodeType = .{
     .enterCommandFn = enterCommand,
 };
 
-const Data = struct {
-    color: [3]f32,
-    roughness: f32,
-};
+const Data = nsdf.OrenNayar.Data;
 
 const properties = [_]NodeProperty{
     .{

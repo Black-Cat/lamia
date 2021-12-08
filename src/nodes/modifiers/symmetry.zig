@@ -11,9 +11,7 @@ pub const Symmetry: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    axis: i32,
-};
+const Data = nsdf.Symmetry.Data;
 
 const properties = [_]NodeProperty{
     .{

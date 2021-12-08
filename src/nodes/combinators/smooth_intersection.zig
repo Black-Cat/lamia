@@ -11,12 +11,7 @@ pub const SmoothIntersection: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    smoothing: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.SmoothIntersection.Data;
 
 const properties = [_]NodeProperty{
     .{

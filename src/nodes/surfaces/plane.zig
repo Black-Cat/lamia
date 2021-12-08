@@ -12,14 +12,7 @@ pub const Plane: NodeType = .{
     .appendMatCheckFn = appendMatCheckSurface,
 };
 
-const Data = struct {
-    normal: [3]f32,
-    offset: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.Plane.Data;
 
 const properties = [_]NodeProperty{
     .{

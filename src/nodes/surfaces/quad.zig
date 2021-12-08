@@ -13,16 +13,7 @@ pub const Quad: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    point_a: nm.vec3,
-    point_b: nm.vec3,
-    point_c: nm.vec3,
-    point_d: nm.vec3,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.Quad.Data;
 
 const properties = [_]NodeProperty{
     .{

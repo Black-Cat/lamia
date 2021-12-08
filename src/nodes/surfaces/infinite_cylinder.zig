@@ -12,13 +12,7 @@ pub const InfiniteCylinder: NodeType = .{
     .appendMatCheckFn = appendMatCheckSurface,
 };
 
-const Data = struct {
-    direction: [3]f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.InfiniteCylinder.Data;
 
 const properties = [_]NodeProperty{
     .{

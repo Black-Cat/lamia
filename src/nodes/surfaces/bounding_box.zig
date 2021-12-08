@@ -13,14 +13,7 @@ pub const BoundingBox: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    size: [3]f32,
-    extent: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.BoundingBox.Data;
 
 const properties = [_]NodeProperty{
     .{

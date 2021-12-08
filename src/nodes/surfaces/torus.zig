@@ -13,14 +13,7 @@ pub const Torus: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    inner_radius: f32,
-    outer_radius: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.Torus.Data;
 
 const properties = [_]NodeProperty{
     .{

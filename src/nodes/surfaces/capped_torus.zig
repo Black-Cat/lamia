@@ -13,15 +13,7 @@ pub const CappedTorus: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    angle: f32,
-    inner_radius: f32,
-    outer_radius: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.CappedTorus.Data;
 
 const properties = [_]NodeProperty{
     .{

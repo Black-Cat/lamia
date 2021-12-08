@@ -11,12 +11,7 @@ pub const Displacement: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    power: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.Displacement.Data;
 
 const properties = [_]NodeProperty{
     .{

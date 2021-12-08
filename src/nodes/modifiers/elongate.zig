@@ -11,9 +11,7 @@ pub const Elongate: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    height: f32,
-};
+const Data = nsdf.Elongate.Data;
 
 const properties = [_]NodeProperty{
     .{

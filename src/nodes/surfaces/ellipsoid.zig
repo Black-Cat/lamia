@@ -13,13 +13,7 @@ pub const Ellipsoid: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    radius: [3]f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.Ellipsoid.Data;
 
 const properties = [_]NodeProperty{
     .{

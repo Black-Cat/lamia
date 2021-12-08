@@ -10,10 +10,7 @@ pub const CustomMaterial: NodeType = .{
     .enterCommandFn = enterCommand,
 };
 
-const Data = struct {
-    const max_func_len: usize = 1024;
-    material_function: [max_func_len]u8,
-};
+const Data = nsdf.CustomMaterial.Data;
 
 const properties = [_]NodeProperty{
     .{

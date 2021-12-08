@@ -11,10 +11,7 @@ pub const Union: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.Union.Data;
 
 const properties = [_]NodeProperty{};
 

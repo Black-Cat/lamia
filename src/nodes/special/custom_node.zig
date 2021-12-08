@@ -9,14 +9,7 @@ pub const CustomNode: NodeType = .{
     .init_data_fn = initData,
 };
 
-const Data = struct {
-    const max_func_len: usize = 1024;
-    enter_function: [max_func_len]u8,
-    exit_function: [max_func_len]u8,
-
-    enter_stack: usize,
-    enter_index: usize,
-};
+const Data = nsdf.CustomNode.Data;
 
 const properties = [_]NodeProperty{
     .{

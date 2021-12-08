@@ -12,14 +12,7 @@ pub const Cone: NodeType = .{
     .appendMatCheckFn = appendMatCheckSurface,
 };
 
-const Data = struct {
-    angle: f32,
-    height: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.Cone.Data;
 
 const properties = [_]NodeProperty{
     .{

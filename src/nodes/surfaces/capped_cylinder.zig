@@ -13,15 +13,7 @@ pub const CappedCylinder: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    start: nm.vec3,
-    end: nm.vec3,
-    radius: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.CappedCylinder.Data;
 
 const properties = [_]NodeProperty{
     .{

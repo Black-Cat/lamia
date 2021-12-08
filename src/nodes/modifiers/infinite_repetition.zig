@@ -11,9 +11,7 @@ pub const InfiniteRepetition: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    period: f32,
-};
+const Data = nsdf.InfiniteRepetition.Data;
 
 const properties = [_]NodeProperty{
     .{

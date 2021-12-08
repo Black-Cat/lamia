@@ -11,13 +11,7 @@ pub const DisplacementNoise: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    power: f32,
-    scale: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.DisplacementNoise.Data;
 
 const properties = [_]NodeProperty{
     .{

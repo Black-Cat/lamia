@@ -11,12 +11,7 @@ pub const Scale: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    scale: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.Scale.Data;
 
 const properties = [_]NodeProperty{
     .{

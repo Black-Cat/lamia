@@ -13,16 +13,7 @@ pub const CappedCone: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    start: nm.vec3,
-    end: nm.vec3,
-    start_radius: f32,
-    end_radius: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.CappedCone.Data;
 
 const properties = [_]NodeProperty{
     .{

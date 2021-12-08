@@ -13,14 +13,7 @@ pub const HexagonalPrism: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    radius: f32,
-    height: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.HexagonalPrism.Data;
 
 const properties = [_]NodeProperty{
     .{

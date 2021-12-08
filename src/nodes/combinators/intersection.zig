@@ -11,10 +11,7 @@ pub const Intersection: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.Intersection.Data;
 
 const properties = [_]NodeProperty{};
 

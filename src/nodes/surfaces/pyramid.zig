@@ -12,13 +12,7 @@ pub const Pyramid: NodeType = .{
     .appendMatCheckFn = appendMatCheckSurface,
 };
 
-const Data = struct {
-    height: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.Pyramid.Data;
 
 const properties = [_]NodeProperty{
     .{

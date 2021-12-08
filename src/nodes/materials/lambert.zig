@@ -19,9 +19,7 @@ const function_defenition: []const u8 =
     \\
 ;
 
-const Data = struct {
-    color: [3]f32,
-};
+const Data = nsdf.Lambert.Data;
 
 const properties = [_]NodeProperty{
     .{

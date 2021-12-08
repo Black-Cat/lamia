@@ -11,12 +11,7 @@ pub const Onion: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    thickness: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.Onion.Data;
 
 const properties = [_]NodeProperty{
     .{

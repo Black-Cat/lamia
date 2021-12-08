@@ -12,13 +12,7 @@ pub const InfiniteCone: NodeType = .{
     .appendMatCheckFn = appendMatCheckSurface,
 };
 
-const Data = struct {
-    angle: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.InfiniteCone.Data;
 
 const properties = [_]NodeProperty{
     .{

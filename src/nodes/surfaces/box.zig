@@ -13,13 +13,7 @@ pub const Box: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    size: [3]f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.Box.Data;
 
 const properties = [_]NodeProperty{
     .{

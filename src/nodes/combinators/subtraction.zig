@@ -11,10 +11,7 @@ pub const Subtraction: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.Subtraction.Data;
 
 const properties = [_]NodeProperty{};
 

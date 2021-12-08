@@ -11,9 +11,7 @@ pub const Twist: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = struct {
-    power: f32,
-};
+const Data = nsdf.Twist.Data;
 
 const properties = [_]NodeProperty{
     .{

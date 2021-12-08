@@ -13,14 +13,7 @@ pub const VerticalCapsule: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    height: f32,
-    radius: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.VerticalCapsule.Data;
 
 const properties = [_]NodeProperty{
     .{

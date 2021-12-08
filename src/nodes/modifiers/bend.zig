@@ -12,9 +12,7 @@ pub const Bend: NodeType = .{
     .modifyGizmoPointsFn = modifyGizmoPoints,
 };
 
-const Data = struct {
-    power: f32,
-};
+const Data = nsdf.Bend.Data;
 
 const properties = [_]NodeProperty{
     .{

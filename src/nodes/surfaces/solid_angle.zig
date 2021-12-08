@@ -13,14 +13,7 @@ pub const SolidAngle: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = struct {
-    angle: f32,
-    radius: f32,
-
-    enter_index: usize,
-    enter_stack: usize,
-    mat: usize,
-};
+const Data = nsdf.SolidAngle.Data;
 
 const properties = [_]NodeProperty{
     .{

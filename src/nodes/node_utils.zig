@@ -1,6 +1,7 @@
 pub const std = @import("std");
 pub const nyan = @import("nyancore");
 pub const nm = nyan.Math;
+pub const nsdf = nyan.Sdf;
 
 pub const NodeType = @import("node_type.zig").NodeType;
 pub const IterationContext = @import("node_type.zig").IterationContext;

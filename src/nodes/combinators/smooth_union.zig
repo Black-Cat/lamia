@@ -12,14 +12,7 @@ pub const SmoothUnion: NodeType = .{
     .appendMatCheckFn = appendMatCheck,
 };
 
-const Data = struct {
-    smoothing: f32,
-
-    mats: [2]i32,
-    dist_indexes: [2]usize,
-    enter_index: usize,
-    enter_stack: usize,
-};
+const Data = nsdf.SmoothUnion.Data;
 
 const properties = [_]NodeProperty{
     .{

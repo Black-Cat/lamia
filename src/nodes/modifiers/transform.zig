@@ -16,11 +16,7 @@ pub const Transform: NodeType = .{
     .modifyGizmoPointsFn = modifyGizmoPoints,
 };
 
-const Data = struct {
-    rotation: nm.vec3,
-    translation: nm.vec3,
-    transform_matrix: nm.mat4x4,
-};
+const Data = nsdf.Transform.Data;
 
 const properties = [_]NodeProperty{
     .{
