@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Transform: NodeType = .{
-    .name = "Transform",
+    .name = nsdf.Transform.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Triangle: NodeType = .{
-    .name = "Triangle",
+    .name = nsdf.Triangle.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

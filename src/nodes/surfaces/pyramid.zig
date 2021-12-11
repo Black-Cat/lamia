@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Pyramid: NodeType = .{
-    .name = "Pyramid",
+    .name = nsdf.Pyramid.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

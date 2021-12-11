@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const RoundBox: NodeType = .{
-    .name = "Round Box",
+    .name = nsdf.RoundBox.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

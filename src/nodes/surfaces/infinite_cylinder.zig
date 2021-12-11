@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const InfiniteCylinder: NodeType = .{
-    .name = "Infinite Cylinder",
+    .name = nsdf.InfiniteCylinder.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

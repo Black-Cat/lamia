@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const VerticalCapsule: NodeType = .{
-    .name = "Vertical Capsule",
+    .name = nsdf.VerticalCapsule.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

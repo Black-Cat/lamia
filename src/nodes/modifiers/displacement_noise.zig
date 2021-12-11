@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const DisplacementNoise: NodeType = .{
-    .name = "Displacement Noise",
+    .name = nsdf.DisplacementNoise.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

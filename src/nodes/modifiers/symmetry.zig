@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Symmetry: NodeType = .{
-    .name = "Symmetry",
+    .name = nsdf.Symmetry.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Octahedron: NodeType = .{
-    .name = "Octahedron",
+    .name = nsdf.Octahedron.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Twist: NodeType = .{
-    .name = "Twist",
+    .name = nsdf.Twist.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

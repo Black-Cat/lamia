@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Torus: NodeType = .{
-    .name = "Torus",
+    .name = nsdf.Torus.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

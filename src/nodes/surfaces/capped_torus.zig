@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const CappedTorus: NodeType = .{
-    .name = "Capped Torus",
+    .name = nsdf.CappedTorus.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

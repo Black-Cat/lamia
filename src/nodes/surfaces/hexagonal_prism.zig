@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const HexagonalPrism: NodeType = .{
-    .name = "Hexagonal Prism",
+    .name = nsdf.HexagonalPrism.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

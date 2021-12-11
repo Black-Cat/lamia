@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Onion: NodeType = .{
-    .name = "Onion",
+    .name = nsdf.Onion.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

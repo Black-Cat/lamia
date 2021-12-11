@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const VerticalCappedCylinder: NodeType = .{
-    .name = "Vertical Capped Cylinder",
+    .name = nsdf.VerticalCappedCylinder.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

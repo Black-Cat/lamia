@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const InfiniteCone: NodeType = .{
-    .name = "Infinite Cone",
+    .name = nsdf.InfiniteCone.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

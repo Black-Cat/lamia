@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const VerticalCappedCone: NodeType = .{
-    .name = "Vertical Capped Cone",
+    .name = nsdf.VerticalCappedCone.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

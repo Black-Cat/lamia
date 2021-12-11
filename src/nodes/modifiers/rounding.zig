@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Rounding: NodeType = .{
-    .name = "Rounding",
+    .name = nsdf.Rounding.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const CustomNode: NodeType = .{
-    .name = "Custom Node",
+    .name = nsdf.CustomNode.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

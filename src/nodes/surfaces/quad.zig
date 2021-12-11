@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Quad: NodeType = .{
-    .name = "Quad",
+    .name = nsdf.Quad.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

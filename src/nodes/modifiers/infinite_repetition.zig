@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const InfiniteRepetition: NodeType = .{
-    .name = "Infinite Repetition",
+    .name = nsdf.InfiniteRepetition.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

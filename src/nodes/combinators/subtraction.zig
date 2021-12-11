@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Subtraction: NodeType = .{
-    .name = "Subtraction",
+    .name = nsdf.Subtraction.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

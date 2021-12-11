@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Elongate: NodeType = .{
-    .name = "Elongate",
+    .name = nsdf.Elongate.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Link: NodeType = .{
-    .name = "Link",
+    .name = nsdf.Link.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

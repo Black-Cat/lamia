@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Capsule: NodeType = .{
-    .name = "Capsule",
+    .name = nsdf.Capsule.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

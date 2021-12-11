@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Union: NodeType = .{
-    .name = "Union",
+    .name = nsdf.Union.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

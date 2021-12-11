@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const BoundingBox: NodeType = .{
-    .name = "Bounding Box",
+    .name = nsdf.BoundingBox.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const RoundedCylinder: NodeType = .{
-    .name = "Rounded Cylinder",
+    .name = nsdf.RoundedCylinder.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

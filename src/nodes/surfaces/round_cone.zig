@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const RoundCone: NodeType = .{
-    .name = "Round Cone",
+    .name = nsdf.RoundCone.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

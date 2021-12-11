@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Rhombus: NodeType = .{
-    .name = "Rhombus",
+    .name = nsdf.Rhombus.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

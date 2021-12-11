@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Intersection: NodeType = .{
-    .name = "Intersection",
+    .name = nsdf.Intersection.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],

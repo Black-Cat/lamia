@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Ellipsoid: NodeType = .{
-    .name = "Ellipsoid",
+    .name = nsdf.Ellipsoid.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

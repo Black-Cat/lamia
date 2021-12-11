@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const SmoothIntersection: NodeType = .{
-    .name = "Smooth Intersection",
+    .name = nsdf.SmoothIntersection.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],

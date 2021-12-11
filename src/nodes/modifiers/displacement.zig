@@ -1,7 +1,7 @@
 usingnamespace @import("../node_utils.zig");
 
 pub const Displacement: NodeType = .{
-    .name = "Displacement",
+    .name = nsdf.Displacement.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
