@@ -8,6 +8,8 @@ const NodeProperty = @import("../nodes/node_property.zig").NodeProperty;
 const node_collection = @import("../nodes/node_collection.zig");
 const scene2shader = @import("scene2shader.zig").scene2shader;
 
+usingnamespace nyan.file_util;
+
 fn root_init(buffer: *[]u8) void {
     buffer.* = nyan.app.allocator.alloc(u8, 0) catch unreachable;
 }
@@ -75,13 +77,6 @@ pub const Scene = struct {
         self.root.deinit();
     }
 
-    fn writeU32(file: *const std.fs.File, val_usize: usize) std.os.WriteError!void {
-        const val_u32: u32 = @intCast(u32, val_usize);
-        var temp: [@sizeOf(u32)]u8 = undefined;
-        std.mem.writeIntBig(u32, &temp, val_u32);
-        try file.writeAll(temp[0..]);
-    }
-
     fn recursiveSave(node: *SceneNode, file: *const std.fs.File) std.os.WriteError!void {
         const name: []const u8 = std.mem.sliceTo(&node.name, 0);
 
@@ -121,12 +116,6 @@ pub const Scene = struct {
 
         try saveRoot(&self.materials, &file);
         try saveRoot(&self.root, &file);
-    }
-
-    fn readU32(file: *const std.fs.File) std.os.ReadError!usize {
-        var temp: [@sizeOf(u32)]u8 = undefined;
-        _ = try file.readAll(temp[0..]);
-        return @intCast(usize, std.mem.readIntBig(u32, &temp));
     }
 
     fn recursiveLoad(parent: *SceneNode, file: *const std.fs.File) std.os.ReadError!void {
