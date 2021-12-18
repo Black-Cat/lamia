@@ -176,6 +176,18 @@ pub const SceneTree = struct {
             nc.igTreePop();
     }
 
+    fn drawWarning() void {
+        nc.igPushStyleColor_U32(nc.ImGuiCol_Text, 0xff007bff);
+        nc.igText("<!>");
+        nc.igPopStyleColor(1);
+
+        if (nc.igIsItemHovered(nc.ImGuiHoveredFlags_None)) {
+            nc.igBeginTooltip();
+            nc.igText("Node exceeds max child count for parent and won't be used in shader");
+            nc.igEndTooltip();
+        }
+    }
+
     fn drawSceneNode(self: *SceneTree, node: *SceneNode) void {
         const node_flags: nc.ImGuiTreeNodeFlags = addSelectedFlag(nc.ImGuiTreeNodeFlags_OpenOnArrow, node, self.selected_scene_node.*);
         const opened: bool = nc.igTreeNodeEx_Ptr(node, node_flags, &node.name);
@@ -187,10 +199,16 @@ pub const SceneTree = struct {
         if (opened) {
             for (node.children.items) |child, i| {
                 self.sceneNodeReorderBlock(node, i);
+
                 if (child.childrenCount() > 0) {
                     self.drawSceneNode(child);
                 } else {
                     self.drawSceneLeaf(child);
+                }
+
+                if (node.children.items.len - i > node.node_type.maxChildCount) {
+                    nc.igSameLine(0.0, -1.0);
+                    drawWarning();
                 }
             }
             self.sceneNodeReorderBlock(node, node.childrenCount());
@@ -205,6 +223,11 @@ pub const SceneTree = struct {
                 self.drawSceneNode(child);
             } else {
                 self.drawSceneLeaf(child);
+            }
+
+            if (node.children.items.len - i > node.node_type.maxChildCount) {
+                nc.igSameLine(0.0, -1.0);
+                drawWarning();
             }
         }
         self.sceneNodeReorderBlock(node, node.childrenCount());

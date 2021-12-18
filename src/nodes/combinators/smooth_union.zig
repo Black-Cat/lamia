@@ -10,6 +10,8 @@ pub const SmoothUnion: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
     .appendMatCheckFn = appendMatCheck,
+
+    .maxChildCount = 2,
 };
 
 const Data = nsdf.SmoothUnion.Data;

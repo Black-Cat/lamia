@@ -100,4 +100,6 @@ pub const NodeType = struct {
     appendGizmosFn: fn (buffer: *[]u8, gizmo_storage: *GizmoStorage) void = appendNoGizmos,
 
     modifyGizmoPointsFn: fn (buffer: *[]u8, points: []nm.vec4) void = dontModifyGizmos,
+
+    maxChildCount: usize = 1,
 };

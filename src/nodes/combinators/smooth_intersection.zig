@@ -9,6 +9,8 @@ pub const SmoothIntersection: NodeType = .{
     .init_data_fn = initData,
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
+
+    .maxChildCount = 2,
 };
 
 const Data = nsdf.SmoothIntersection.Data;
