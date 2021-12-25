@@ -11,8 +11,8 @@ const FileNodeData = @import("../nodes/special/file_scene_node.zig").Data;
 const Global = @import("../global.zig");
 const FileWatcher = @import("file_watcher.zig").FileWatcher;
 
-pub fn scene2shader(scene: *Scene) vk.ShaderModule {
-    const code: []const u8 = scene2code(scene);
+pub fn scene2shader(scene: *Scene, settings: *SceneNode) vk.ShaderModule {
+    const code: []const u8 = scene2code(scene, settings);
     //std.debug.print("{s}\n", .{code});
 
     // =c Crashes compiler in zig 0.8
@@ -199,7 +199,7 @@ const Context = struct {
     }
 };
 
-fn scene2code(scene: *Scene) []const u8 {
+fn scene2code(scene: *Scene, settings: *SceneNode) []const u8 {
     var context = Context.create(nyan.app.allocator);
     defer context.destroy();
 
@@ -213,7 +213,7 @@ fn scene2code(scene: *Scene) []const u8 {
         }
     }
 
-    const settings_defines: []const u8 = settingsDefines(&context, scene);
+    const settings_defines: []const u8 = settingsDefines(&context, settings);
     defer nyan.app.allocator.free(settings_defines);
 
     const function_decls: []const u8 = functionDecls(&context, nyan.app.allocator);
@@ -254,10 +254,10 @@ fn scene2code(scene: *Scene) []const u8 {
     return std.mem.concat(nyan.app.allocator, u8, code_pieces[0..]) catch unreachable;
 }
 
-fn settingsDefines(ctxt: *Context, scene: *Scene) []const u8 {
-    var defines: [][]const u8 = nyan.app.allocator.alloc([]const u8, scene.settings.children.items.len) catch unreachable;
+fn settingsDefines(ctxt: *Context, settings: *SceneNode) []const u8 {
+    var defines: [][]const u8 = nyan.app.allocator.alloc([]const u8, settings.children.items.len) catch unreachable;
 
-    for (scene.settings.children.items) |s, ind|
+    for (settings.children.items) |s, ind|
         defines[ind] = s.node_type.enterCommandFn(&ctxt.iteration_context, 0, 0, &s.buffer);
 
     const res: []const u8 = std.mem.concat(nyan.app.allocator, u8, defines) catch unreachable;

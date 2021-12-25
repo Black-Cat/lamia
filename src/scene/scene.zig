@@ -16,7 +16,7 @@ fn root_init(buffer: *[]u8) void {
 
 const root_properties = [_]NodeProperty{};
 
-const RootType: NodeType = .{
+pub const RootType: NodeType = .{
     .name = "root",
     .function_defenition = "",
 
@@ -31,6 +31,7 @@ pub const Scene = struct {
     materials: SceneNode,
 
     camera_settings: *SceneNode,
+    environment_settings: *SceneNode,
 
     shader: ?nyan.vk.ShaderModule,
     rg_resource: nyan.RGResource,
@@ -58,13 +59,7 @@ pub const Scene = struct {
         default_material.init(&node_collection.materials[1], "Default Material", &self.materials);
 
         self.create_shader_resource();
-
-        for (self.settings.children.items) |s| {
-            if (std.mem.eql(u8, s.node_type.name, "Camera Settings")) {
-                self.camera_settings = s;
-                break;
-            }
-        }
+        self.findSettings();
     }
 
     pub fn deinit(self: *Scene) void {
@@ -75,6 +70,21 @@ pub const Scene = struct {
         self.materials.deinit();
         self.settings.deinit();
         self.root.deinit();
+    }
+
+    fn findSettings(self: *Scene) void {
+        for (self.settings.children.items) |s| {
+            if (std.mem.eql(u8, s.node_type.name, "Camera Settings")) {
+                self.camera_settings = s;
+                break;
+            }
+        }
+        for (self.settings.children.items) |s| {
+            if (std.mem.eql(u8, s.node_type.name, "Environment Settings")) {
+                self.environment_settings = s;
+                break;
+            }
+        }
     }
 
     fn recursiveSave(node: *SceneNode, file: *const std.fs.File) std.os.WriteError!void {
@@ -164,13 +174,15 @@ pub const Scene = struct {
         try loadRoot(&self.root, &file);
         try loadRoot(&self.settings, &file);
         try loadRoot(&self.materials, &file);
+
+        self.findSettings();
     }
 
     pub fn recompile(self: *Scene) void {
         if (self.shader) |sh|
             nyan.vkw.vkd.destroyShaderModule(nyan.vkw.vkc.device, sh, null);
 
-        self.shader = scene2shader(self);
+        self.shader = scene2shader(self, &self.settings);
 
         nyan.global_render_graph.changeResourceBetweenFrames(&self.rg_resource, rebuildRenderGraph);
     }

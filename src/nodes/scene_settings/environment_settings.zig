@@ -11,7 +11,7 @@ pub const EnvironmentSettings: NodeType = .{
     .enterCommandFn = enterCommand,
 };
 
-const Data = struct {
+pub const Data = struct {
     background_color: [3]f32,
     light_dir: [3]f32,
     shadow_steps: u32,

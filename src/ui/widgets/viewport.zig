@@ -9,12 +9,14 @@ const Global = @import("../../global.zig");
 const Camera = @import("../../scene/camera.zig").Camera;
 const CameraController = @import("../arcball_camera_controller.zig").ArcballCameraController;
 
+const Export2dPopup = @import("viewport_export2d_popup.zig").Export2dPopup;
+
 const gizmo = @import("viewport_gizmos.zig");
 const drawGizmos = gizmo.drawGizmos;
 const GizmoInteractionInfo = gizmo.InteractionInfo;
 const GizmoStorage = gizmo.GizmoStorage;
 
-const FragPushConstBlock = struct {
+pub const FragPushConstBlock = struct {
     eye: [4]f32,
     up: [4]f32,
     forward: [4]f32,
@@ -41,6 +43,8 @@ pub const Viewport = struct {
     gizmo_storage: *GizmoStorage,
     gizmo_interaction: GizmoInteractionInfo,
 
+    export2dPopup: Export2dPopup,
+
     pub fn init(self: *Viewport, comptime name: [:0]const u8, window_class: *nc.ImGuiWindowClass, nyanui: *nyan.UI, gizmos: *GizmoStorage) void {
         self.window = .{
             .widget = .{
@@ -63,6 +67,7 @@ pub const Viewport = struct {
         self.camera_controller = .{ .camera = &self.camera };
         self.gizmo_storage = gizmos;
         self.gizmo_interaction = .{};
+        self.export2dPopup = undefined;
     }
 
     pub fn deinit(self: *Viewport) void {}
@@ -88,6 +93,7 @@ pub const Viewport = struct {
             &Global.main_scene.shader.?,
             @sizeOf(FragPushConstBlock),
             &self.frag_push_const_block,
+            .shader_read_only_optimal,
         );
 
         Global.main_scene.rg_resource.registerOnChangeCallback(&self.render_pass.rg_pass, nyan.ScreenRenderPass.recreatePipelineOnShaderChange);
@@ -135,7 +141,18 @@ pub const Viewport = struct {
         nc.igGetWindowPos(&window_pos);
 
         const cur_width: u32 = @floatToInt(u32, @round(max_pos.x - min_pos.x));
-        const cur_height: u32 = @floatToInt(u32, @round(max_pos.y - min_pos.y));
+        var cur_height: u32 = @floatToInt(u32, @round(max_pos.y - min_pos.y));
+
+        if (nc.igButton(Export2dPopup.name, .{ .x = 0, .y = 0 }))
+            self.export2dPopup.init(&self.camera, self.viewport_texture.width, self.viewport_texture.height, &self.frag_push_const_block);
+
+        var toolbar_min: nc.ImVec2 = undefined;
+        var toolbar_max: nc.ImVec2 = undefined;
+        nc.igGetItemRectMin(&toolbar_min);
+        nc.igGetItemRectMax(&toolbar_max);
+
+        cur_height -= (@floatToInt(u32, toolbar_max.y) - @floatToInt(u32, toolbar_min.y));
+        cur_height -= 2 * @floatToInt(u32, nc.igGetStyle().*.ItemSpacing.y);
 
         if (self.visible and (cur_width != self.viewport_texture.width or cur_height != self.viewport_texture.height)) {
             self.viewport_texture.resize(&nyan.global_render_graph, cur_width, cur_height);
@@ -144,7 +161,7 @@ pub const Viewport = struct {
 
         nc.igImage(
             @ptrCast(*c_void, &self.descriptor_sets[nyan.global_render_graph.frame_index]),
-            .{ .x = max_pos.x - min_pos.x, .y = max_pos.y - min_pos.y },
+            .{ .x = max_pos.x - min_pos.x, .y = @intToFloat(f32, cur_height) },
             .{ .x = 0, .y = 0 },
             .{ .x = 1, .y = 1 },
             .{ .x = 1, .y = 1, .z = 1, .w = 1 },
@@ -156,6 +173,8 @@ pub const Viewport = struct {
             drawGizmos(self.gizmo_storage, &self.gizmo_interaction, &self.camera, min_pos, max_pos, window_pos);
             self.updatePushConstBlock();
         }
+
+        self.export2dPopup.draw();
 
         nc.igEnd();
     }
