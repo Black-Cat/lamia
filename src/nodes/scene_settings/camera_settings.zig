@@ -45,9 +45,9 @@ fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
     data.near = 0.1;
-    data.far = 10.0;
+    data.far = 100.0;
     data.fov = 60.0;
-    data.steps = 64;
+    data.steps = 128;
 
     buffer.* = std.mem.asBytes(data);
 }

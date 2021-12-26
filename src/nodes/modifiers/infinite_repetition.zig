@@ -24,7 +24,7 @@ const properties = [_]NodeProperty{
 fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
-    data.period = 0.5;
+    data.period = 2.0;
 
     buffer.* = std.mem.asBytes(data);
 }

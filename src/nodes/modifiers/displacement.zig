@@ -31,7 +31,7 @@ const function_defenition: []const u8 =
 fn initData(buffer: *[]u8) void {
     const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
 
-    data.power = 20.0;
+    data.power = 0.5;
 
     buffer.* = std.mem.asBytes(data);
 }

@@ -40,7 +40,7 @@ fn initData(buffer: *[]u8) void {
 
     data.background_color = [_]f32{ 0.281, 0.281, 0.281 };
     data.light_dir = [_]f32{ 0.57, 0.57, -0.57 };
-    data.shadow_steps = 16;
+    data.shadow_steps = 32;
 
     buffer.* = std.mem.asBytes(data);
 }
