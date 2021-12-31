@@ -54,7 +54,7 @@ pub const SceneNode = struct {
         new_node.* = node;
     }
 
-    fn removeChild(self: *SceneNode, node: *SceneNode) usize {
+    pub fn removeChild(self: *SceneNode, node: *SceneNode) usize {
         const ind: usize = for (self.children.items) |child, i| {
             if (child == node) break i;
         } else unreachable;

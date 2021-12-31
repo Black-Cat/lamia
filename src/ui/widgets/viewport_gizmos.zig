@@ -64,6 +64,7 @@ pub const GizmoStorage = struct {
         self.size_gizmos.clearRetainingCapacity();
         self.translation_gizmos.clearRetainingCapacity();
         self.rotation_gizmos.clearRetainingCapacity();
+        self.points_to_transform.clearRetainingCapacity();
     }
 
     pub fn fillFromNode(self: *GizmoStorage, node: ?*SceneNode) void {

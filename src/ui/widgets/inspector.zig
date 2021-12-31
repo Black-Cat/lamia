@@ -72,6 +72,16 @@ pub const Inspector = struct {
     fn drawSelectedNode(self: *Inspector, node: *SceneNode) void {
         _ = nc.igInputText("Name", &node.name, SceneNode.NAME_SIZE, 0, null, null);
 
+        if (nc.igButton("Delete", .{ .x = 0, .y = 0 })) {
+            self.selected_scene_node.* = null;
+
+            _ = node.parent.?.removeChild(node);
+            node.deinit();
+
+            Global.main_scene.recompile();
+            return;
+        }
+
         var edited: bool = false;
         for (node.node_type.properties) |*prop|
             edited = prop.drawFn(prop, &node.buffer) or edited;
