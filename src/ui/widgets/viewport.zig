@@ -23,6 +23,8 @@ pub const FragPushConstBlock = struct {
 };
 
 pub const Viewport = struct {
+    const starting_camera_dist: f32 = 6.0;
+
     window: nyan.Widgets.Window,
     visible: bool,
     window_class: *nc.ImGuiWindowClass,
@@ -60,7 +62,7 @@ pub const Viewport = struct {
         self.window_class = window_class;
         self.nyanui = nyanui;
         self.camera = .{
-            .position = .{ 0.0, 0.0, -6.0 },
+            .position = .{ 0.0, 0.0, -starting_camera_dist },
             .target = .{ 0.0, 0.0, 0.0 },
             .up = .{ 0.0, 1.0, 0.0 },
         };
@@ -153,6 +155,24 @@ pub const Viewport = struct {
 
         cur_height -= (@floatToInt(u32, toolbar_max.y) - @floatToInt(u32, toolbar_min.y));
         cur_height -= 2 * @floatToInt(u32, nc.igGetStyle().*.ItemSpacing.y);
+
+        nc.igSameLine(0.0, -1.0);
+        nc.igText("Camera:");
+        nc.igSameLine(0.0, -1.0);
+        if (nc.igButton("Top", .{ .x = 0, .y = 0 }))
+            self.camera.viewAlong(.{ 0.0, -1.0, 0.0 }, .{ 0.0, 0.0, 1.0 });
+        nc.igSameLine(0.0, -1.0);
+        if (nc.igButton("Side", .{ .x = 0, .y = 0 }))
+            self.camera.viewAlong(.{ -1.0, 0.0, 0.0 }, .{ 0.0, 1.0, 0.0 });
+        nc.igSameLine(0.0, -1.0);
+        if (nc.igButton("Front", .{ .x = 0, .y = 0 }))
+            self.camera.viewAlong(.{ 0.0, 0.0, 1.0 }, .{ 0.0, 1.0, 0.0 });
+        nc.igSameLine(0.0, -1.0);
+        if (nc.igButton("Reset", .{ .x = 0, .y = 0 })) {
+            self.camera.moveTargetTo(.{ 0.0, 0.0, 0.0 });
+            self.camera.setDist(starting_camera_dist);
+            self.camera.viewAlong(.{ 0.0, 0.0, 1.0 }, .{ 0.0, 1.0, 0.0 });
+        }
 
         if (self.visible and (cur_width != self.viewport_texture.width or cur_height != self.viewport_texture.height)) {
             self.viewport_texture.resize(&nyan.global_render_graph, cur_width, cur_height);
