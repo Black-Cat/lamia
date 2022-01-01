@@ -119,12 +119,18 @@ const shader_main =
     \\
     \\  vec3 tot = vec3(0.);
     \\
-    \\  vec3 ro = pushConstants.eye;
     \\  vec3 right = cross(pushConstants.up, pushConstants.forward);
-    \\  vec3 rd = right * ip.x * CAMERA_FOV;
-    \\  rd += pushConstants.up * ip.y * CAMERA_FOV;
-    \\  rd += pushConstants.forward;
+    \\  vec3 offset = right * ip.x * CAMERA_FOV;
+    \\  offset += pushConstants.up * ip.y * CAMERA_FOV;
+    \\
+    \\#if (CAMERA_PROJECTION == 0)
+    \\  vec3 ro = pushConstants.eye;
+    \\  vec3 rd = pushConstants.forward + offset;
     \\  rd = normalize(rd);
+    \\#else
+    \\  vec3 ro = pushConstants.eye + offset;
+    \\  vec3 rd = pushConstants.forward;
+    \\#endif
     \\
     \\  float t = CAMERA_NEAR;
     \\  for (int i = 0; i < CAMERA_STEPS; i++) {

@@ -12,10 +12,20 @@ pub const CameraSettings: NodeType = .{
 };
 
 pub const Data = struct {
+    const ProjectionType = enum(u32) {
+        perspective,
+        orthographic,
+    };
+    const projection_names: [2][]const u8 = [_][]const u8{
+        "Perspective",
+        "Orthographic",
+    };
+
     near: f32,
     far: f32,
     fov: f32,
     steps: u32,
+    projection: ProjectionType,
 };
 
 const properties = [_]NodeProperty{
@@ -39,6 +49,12 @@ const properties = [_]NodeProperty{
         .offset = @byteOffsetOf(Data, "steps"),
         .name = "Max Steps",
     },
+    .{
+        .drawFn = drawEnumProperty,
+        .offset = @byteOffsetOf(Data, "projection"),
+        .name = "Projection",
+        .enum_combo_names = Data.projection_names[0..],
+    },
 };
 
 fn initData(buffer: *[]u8) void {
@@ -48,6 +64,7 @@ fn initData(buffer: *[]u8) void {
     data.far = 100.0;
     data.fov = 60.0;
     data.steps = 128;
+    data.projection = .perspective;
 
     buffer.* = std.mem.asBytes(data);
 }
@@ -60,6 +77,7 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
         \\#define CAMERA_FAR {d:.5}
         \\#define CAMERA_FOV {d:.5}
         \\#define CAMERA_STEPS {d}
+        \\#define CAMERA_PROJECTION {d}
         \\
     ;
 
@@ -68,5 +86,6 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
         data.far,
         std.math.tan(data.fov / 2.0 * (std.math.pi / 180.0)),
         data.steps,
+        @enumToInt(data.projection),
     }) catch unreachable;
 }

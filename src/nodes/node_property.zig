@@ -7,7 +7,9 @@ pub const NodeProperty = struct {
     offset: usize,
     name: []const u8,
 
-    prop_len: usize = undefined, // For strings, not always applicable
+    // Not always applicable fields
+    prop_len: usize = undefined, // For strings
+    enum_combo_names: []const []const u8 = undefined, // For enums
 };
 
 pub fn drawFloatProperty(self: *const NodeProperty, data: *[]u8) bool {
@@ -68,11 +70,31 @@ pub fn drawMaterialProperty(self: *const NodeProperty, data: *[]u8) bool {
     const current_index: usize = data_ptr[0];
 
     var changed: bool = false;
-    if (nc.igBeginCombo(self.name.ptr, &Global.main_scene.materials.children.items[@intCast(usize, current_index)].name, nc.ImGuiComboFlags_None)) {
+    if (nc.igBeginCombo(self.name.ptr, &Global.main_scene.materials.children.items[current_index].name, nc.ImGuiComboFlags_None)) {
         for (Global.main_scene.materials.children.items) |mat, i| {
             nc.igPushID_Ptr(mat);
             if (nc.igSelectable_Bool(&mat.name, i == current_index, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 })) {
                 data_ptr[0] = @intCast(usize, i);
+                changed = true;
+            }
+            nc.igPopID();
+        }
+        nc.igEndCombo();
+    }
+
+    return changed;
+}
+
+pub fn drawEnumProperty(self: *const NodeProperty, data: *[]u8) bool {
+    var data_ptr: [*c]u32 = @ptrCast([*c]u32, @alignCast(@alignOf(u32), &data.*[self.offset]));
+    const current_index: usize = data_ptr[0];
+
+    var changed: bool = false;
+    if (nc.igBeginCombo(self.name.ptr, self.enum_combo_names[current_index].ptr, nc.ImGuiComboFlags_None)) {
+        for (self.enum_combo_names) |enum_name, i| {
+            nc.igPushID_Ptr(enum_name.ptr);
+            if (nc.igSelectable_Bool(enum_name.ptr, i == current_index, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 })) {
+                data_ptr[0] = @intCast(u32, i);
                 changed = true;
             }
             nc.igPopID();
