@@ -10,7 +10,7 @@ pub const SmoothIntersection: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
 
-    .maxChildCount = 2,
+    .maxChildCount = std.math.maxInt(usize),
 };
 
 const Data = nsdf.SmoothIntersection.Data;
@@ -52,21 +52,8 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
 fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
-    const format: []const u8 = "float d{d} = opSmoothIntersection(d{d}, d{d}, {d:.5});";
-    const broken_stack: []const u8 = "float d{d} = 1e10;";
-
-    var res: []const u8 = undefined;
-    if (data.enter_stack + 2 >= ctxt.value_indexes.items.len) {
-        res = std.fmt.allocPrint(ctxt.allocator, broken_stack, .{data.enter_index}) catch unreachable;
-    } else {
-        const prev_prev_index: usize = ctxt.value_indexes.items[ctxt.value_indexes.items.len - 2].index;
-        res = std.fmt.allocPrint(ctxt.allocator, format, .{
-            data.enter_index,
-            ctxt.last_value_set_index,
-            prev_prev_index,
-            data.smoothing,
-        }) catch unreachable;
-    }
+    const command: []const u8 = "d{d} = opSmoothIntersection(d{d}, d{d}, {d:.5});";
+    const res: []const u8 = smoothCombinatorExitCommand(command, data.enter_stack, data.enter_index, ctxt, data.smoothing);
 
     ctxt.dropPreviousValueIndexes(data.enter_stack);
 
