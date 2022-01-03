@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const CustomNode: NodeType = .{
-    .name = nsdf.CustomNode.info.name,
+pub const CustomNode: util.NodeType = .{
+    .name = util.nsdf.CustomNode.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],
@@ -9,11 +9,11 @@ pub const CustomNode: NodeType = .{
     .init_data_fn = initData,
 };
 
-const Data = nsdf.CustomNode.Data;
+const Data = util.nsdf.CustomNode.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawHelpProperty,
+        .drawFn = util.prop.drawHelpProperty,
         .offset = undefined,
         .name = 
         \\Point variables:
@@ -22,13 +22,13 @@ const properties = [_]NodeProperty{
         ,
     },
     .{
-        .drawFn = drawCodeProperty,
-        .offset = @byteOffsetOf(Data, "enter_function"),
+        .drawFn = util.prop.drawCodeProperty,
+        .offset = @offsetOf(Data, "enter_function"),
         .name = "Point Code",
         .prop_len = Data.max_func_len,
     },
     .{
-        .drawFn = drawHelpProperty,
+        .drawFn = util.prop.drawHelpProperty,
         .offset = undefined,
         .name = 
         \\Distance variables:
@@ -38,29 +38,31 @@ const properties = [_]NodeProperty{
         ,
     },
     .{
-        .drawFn = drawCodeProperty,
-        .offset = @byteOffsetOf(Data, "exit_function"),
+        .drawFn = util.prop.drawCodeProperty,
+        .offset = @offsetOf(Data, "exit_function"),
         .name = "Distance Code",
         .prop_len = Data.max_func_len,
     },
 };
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
-    setBuffer(data.enter_function[0..], "cpout = cpin;");
-    setBuffer(data.exit_function[0..], "cdout = cdin;");
+    util.setBuffer(data.enter_function[0..], "cpout = cpin;");
+    util.setBuffer(data.exit_function[0..], "cdout = cdin;");
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
-    const next_point: []const u8 = std.fmt.allocPrint(ctxt.allocator, "p{d}", .{iter}) catch unreachable;
+    const next_point: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, "p{d}", .{iter}) catch unreachable;
 
     const format: []const u8 = "cpin = {s}; {{ {s} }} vec3 {s} = cpout;";
-    const res: []const u8 = std.fmt.allocPrint(ctxt.allocator, format, .{
+    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{
         ctxt.cur_point_name,
         @ptrCast([*c]const u8, data.enter_function.ptr),
         next_point,
@@ -75,7 +77,9 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
     return res;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     ctxt.popPointName();
@@ -85,9 +89,9 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
 
     var res: []const u8 = undefined;
     if (data.enter_index == ctxt.last_value_set_index) {
-        res = std.fmt.allocPrint(ctxt.allocator, broken_stack, .{data.enter_index}) catch unreachable;
+        res = util.std.fmt.allocPrint(ctxt.allocator, broken_stack, .{data.enter_index}) catch unreachable;
     } else {
-        res = std.fmt.allocPrint(ctxt.allocator, format, .{
+        res = util.std.fmt.allocPrint(ctxt.allocator, format, .{
             ctxt.last_value_set_index,
             ctxt.cur_point_name,
             @ptrCast([*c]const u8, data.exit_function.ptr),

@@ -2,7 +2,7 @@ const std = @import("std");
 const nyan = @import("nyancore");
 const nc = nyan.c;
 
-const open_link_command: []const u8 = switch (std.Target.current.os.tag) {
+const open_link_command: []const u8 = switch (@import("builtin").target.os.tag) {
     .linux => "xdg-open",
     .windows => "start",
     .macos => "open",

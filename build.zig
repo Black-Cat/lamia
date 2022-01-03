@@ -15,7 +15,7 @@ pub fn build(b: *Builder) void {
     lamia.linkSystemLibrary("c");
     lamia.addPackage(.{
         .name = "nyancore",
-        .path = "nyancore/src/main.zig",
+        .path = .{ .path = "nyancore/src/main.zig" },
     });
 
     var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", false);

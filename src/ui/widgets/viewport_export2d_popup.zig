@@ -14,8 +14,6 @@ const SceneNode = @import("../../scene/scene_node.zig").SceneNode;
 const node_collection = @import("../../nodes/node_collection.zig");
 const scene2shader = @import("../../scene/scene2shader.zig").scene2shader;
 
-usingnamespace nyan.file_util;
-
 pub const Export2dPopup = struct {
     pub const name = "Export 2D";
     const file_path_len = 256;
@@ -128,7 +126,7 @@ pub const Export2dPopup = struct {
 
         // Use render pass
         const command_buffer: nyan.vk.CommandBuffer = nyan.global_render_graph.allocateCommandBuffer();
-        nyan.global_render_graph.beginSingleTimeCommands(command_buffer);
+        nyan.RenderGraph.beginSingleTimeCommands(command_buffer);
         render_pass.rg_pass.renderFn(&render_pass.rg_pass, command_buffer, 0);
 
         // Copy image to buffer
@@ -218,10 +216,10 @@ pub const Export2dPopup = struct {
         };
 
         nyan.vkw.vkd.cmdCopyImageToBuffer(command_buffer, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast([*]const nyan.vk.BufferImageCopy, &region));
-        nyan.global_render_graph.endSingleTimeCommands(command_buffer);
+        nyan.RenderGraph.endSingleTimeCommands(command_buffer);
         nyan.global_render_graph.submitCommandBuffer(command_buffer);
 
-        var mapped_memory: *c_void = nyan.vkw.vkd.mapMemory(nyan.vkw.vkc.device, staging_buffer_memory, 0, tex_size, .{}) catch |err| {
+        var mapped_memory: *anyopaque = nyan.vkw.vkd.mapMemory(nyan.vkw.vkc.device, staging_buffer_memory, 0, tex_size, .{}) catch |err| {
             nyan.vkw.printVulkanError("Can't map memory for export 2d texture", err, nyan.vkw.vkc.allocator);
             return;
         } orelse return;
@@ -230,7 +228,7 @@ pub const Export2dPopup = struct {
         // Write buffer to path
         const path: []const u8 = std.mem.sliceTo(&self.selected_file_path, 0);
         const cwd: std.fs.Dir = std.fs.cwd();
-        const file: std.fs.File = cwd.createFile(path, .{ .read = true, .truncate = true }) catch |err| {
+        const file: std.fs.File = cwd.createFile(path, .{ .read = true, .truncate = true }) catch {
             nyan.printError("Export 2D", "Can't create a file");
             return;
         };
@@ -238,15 +236,15 @@ pub const Export2dPopup = struct {
 
         // BMP Header
         file.writeAll("\x42\x4D") catch unreachable;
-        writeU32Little(&file, 122 + tex_size) catch unreachable;
+        nyan.file_util.writeU32Little(&file, 122 + tex_size) catch unreachable;
         file.writeAll("\x00\x00\x00\x00\x7A\x00\x00\x00") catch unreachable;
 
         // DIB Header
         file.writeAll("\x6C\x00\x00\x00") catch unreachable;
-        writeI32Little(&file, @intCast(i32, tex.width)) catch unreachable;
-        writeI32Little(&file, -@intCast(i32, tex.height)) catch unreachable;
+        nyan.file_util.writeI32Little(&file, @intCast(i32, tex.width)) catch unreachable;
+        nyan.file_util.writeI32Little(&file, -@intCast(i32, tex.height)) catch unreachable;
         file.writeAll("\x01\x00\x20\x00\x03\x00\x00\x00") catch unreachable;
-        writeU32Little(&file, tex_size) catch unreachable;
+        nyan.file_util.writeU32Little(&file, tex_size) catch unreachable;
         file.writeAll("\x13\x0B\x00\x00\x13\x0B\x00\x00") catch unreachable;
         file.writeAll("\x00\x00\x00\x00\x00\x00\x00\x00") catch unreachable;
         file.writeAll("\x00\x00\xFF\x00") catch unreachable;

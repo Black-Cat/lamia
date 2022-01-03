@@ -8,8 +8,6 @@ const NodeProperty = @import("../nodes/node_property.zig").NodeProperty;
 const node_collection = @import("../nodes/node_collection.zig");
 const scene2shader = @import("scene2shader.zig").scene2shader;
 
-usingnamespace nyan.file_util;
-
 fn root_init(buffer: *[]u8) void {
     buffer.* = nyan.app.allocator.alloc(u8, 0) catch unreachable;
 }
@@ -90,21 +88,21 @@ pub const Scene = struct {
     fn recursiveSave(node: *SceneNode, file: *const std.fs.File) std.os.WriteError!void {
         const name: []const u8 = std.mem.sliceTo(&node.name, 0);
 
-        try writeU32(file, name.len);
+        try nyan.file_util.writeU32(file, name.len);
         try file.writeAll(name);
 
-        try writeU32(file, node.node_type.name.len);
+        try nyan.file_util.writeU32(file, node.node_type.name.len);
         try file.writeAll(node.node_type.name);
 
         try file.writeAll(node.buffer);
 
-        try writeU32(file, node.childrenCount());
+        try nyan.file_util.writeU32(file, node.childrenCount());
         for (node.children.items) |child|
             try recursiveSave(child, file);
     }
 
     fn saveRoot(root: *SceneNode, file: *const std.fs.File) std.os.WriteError!void {
-        try writeU32(file, root.childrenCount());
+        try nyan.file_util.writeU32(file, root.childrenCount());
         for (root.children.items) |child|
             try recursiveSave(child, file);
     }
@@ -131,11 +129,11 @@ pub const Scene = struct {
     fn recursiveLoad(parent: *SceneNode, file: *const std.fs.File) std.os.ReadError!void {
         var node: *SceneNode = parent.add();
 
-        const name_len: usize = try readU32(file);
+        const name_len: usize = try nyan.file_util.readU32(file);
         _ = try file.readAll(node.name[0..name_len]);
         node.name[name_len] = 0;
 
-        const node_type_len: usize = try readU32(file);
+        const node_type_len: usize = try nyan.file_util.readU32(file);
         var node_type_name: []u8 = nyan.app.allocator.alloc(u8, node_type_len) catch unreachable;
         defer nyan.app.allocator.free(node_type_name);
         _ = try file.readAll(node_type_name);
@@ -148,13 +146,13 @@ pub const Scene = struct {
         if (node_type.has_on_load)
             node_type.on_load_fn(&node.buffer);
 
-        var children_count: usize = try readU32(file);
+        var children_count: usize = try nyan.file_util.readU32(file);
         while (children_count > 0) : (children_count -= 1)
             try recursiveLoad(node, file);
     }
 
     fn loadRoot(parent: *SceneNode, file: *const std.fs.File) std.os.ReadError!void {
-        var root_level_nodes_count: usize = try readU32(file);
+        var root_level_nodes_count: usize = try nyan.file_util.readU32(file);
         while (root_level_nodes_count > 0) : (root_level_nodes_count -= 1)
             try recursiveLoad(parent, file);
     }
@@ -188,6 +186,7 @@ pub const Scene = struct {
     }
 
     fn rebuildRenderGraph(res: *nyan.RGResource) void {
+        _ = res;
         nyan.global_render_graph.needs_rebuilding = true;
     }
 };

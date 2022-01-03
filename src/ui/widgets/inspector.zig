@@ -33,7 +33,9 @@ pub const Inspector = struct {
         self.gizmo_storage = gizmo_storage;
     }
 
-    pub fn deinit(self: *Inspector) void {}
+    pub fn deinit(self: *Inspector) void {
+        _ = self;
+    }
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);

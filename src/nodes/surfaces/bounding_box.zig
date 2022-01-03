@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const BoundingBox: NodeType = .{
-    .name = nsdf.BoundingBox.info.name,
+pub const BoundingBox: util.NodeType = .{
+    .name = util.nsdf.BoundingBox.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -13,22 +13,22 @@ pub const BoundingBox: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = nsdf.BoundingBox.Data;
+const Data = util.nsdf.BoundingBox.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloat3Property,
-        .offset = @byteOffsetOf(Data, "size"),
+        .drawFn = util.prop.drawFloat3Property,
+        .offset = @offsetOf(Data, "size"),
         .name = "Size",
     },
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "extent"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "extent"),
         .name = "Extent",
     },
     .{
-        .drawFn = drawMaterialProperty,
-        .offset = @byteOffsetOf(Data, "mat"),
+        .drawFn = util.prop.drawMaterialProperty,
+        .offset = @offsetOf(Data, "mat"),
         .name = "Material",
     },
 };
@@ -46,31 +46,33 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.size = [_]f32{ 1.0, 1.0, 1.0 };
     data.extent = 0.1;
     data.mat = 0;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
     ctxt.pushStackInfo(iter, @intCast(i32, data.mat + mat_offset));
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "float d{d} = sdBoundingBox({s}, vec3({d:.5},{d:.5},{d:.5}),{d:.5});";
 
-    const res: []const u8 = std.fmt.allocPrint(ctxt.allocator, format, .{
+    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{
         data.enter_index,
         ctxt.cur_point_name,
         data.size[0],
@@ -84,23 +86,23 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     return res;
 }
 
-pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: *std.mem.Allocator) []const u8 {
+pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: util.std.mem.Allocator) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "{s}if(d{d}<MAP_EPS)return matToColor({d}.,l,n,v);";
-    return std.fmt.allocPrint(allocator, format, .{
+    return util.std.fmt.allocPrint(allocator, format, .{
         exit_command,
         data.enter_index,
         data.mat + mat_offset,
     }) catch unreachable;
 }
 
-pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     var i: usize = 0;
     while (i < 3) : (i += 1) {
-        const gizmo: SizeGizmo = .{
+        const gizmo: util.SizeGizmo = .{
             .size = &data.size[i],
             .dir = .{
                 @intToFloat(f32, @boolToInt(i == 0)),
@@ -119,12 +121,12 @@ pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
     }
 
     while (i < 3 + 6) : (i += 1) {
-        var dir: nm.vec3 = undefined;
+        var dir: util.nm.vec3 = undefined;
         var d: usize = 0;
         while (d < 3) : (d += 1)
             dir[d] = @intToFloat(f32, @boolToInt(i % 3 == d) * (@intCast(i32, @boolToInt(i < 6)) * 2 - 1));
 
-        const gizmo: SizeGizmo = .{
+        const gizmo: util.SizeGizmo = .{
             .size = &data.extent,
             .offset_dist = &data.size[i % 3],
             .dir = dir,

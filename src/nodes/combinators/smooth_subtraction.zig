@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const SmoothSubtraction: NodeType = .{
-    .name = nsdf.SmoothSubtraction.info.name,
+pub const SmoothSubtraction: util.NodeType = .{
+    .name = util.nsdf.SmoothSubtraction.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -10,16 +10,16 @@ pub const SmoothSubtraction: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
 
-    .maxChildCount = std.math.maxInt(usize),
+    .maxChildCount = util.std.math.maxInt(usize),
 };
 
-const Data = nsdf.SmoothSubtraction.Data;
+const Data = util.nsdf.SmoothSubtraction.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloatProperty,
+        .drawFn = util.prop.drawFloatProperty,
         .name = "Smoothing",
-        .offset = @byteOffsetOf(Data, "smoothing"),
+        .offset = @offsetOf(Data, "smoothing"),
     },
 };
 
@@ -32,28 +32,32 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.smoothing = 0.5;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
     ctxt.pushStackInfo(iter, 0);
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const command: []const u8 = "d{d} = opSmoothSubtraction(d{d}, d{d}, {d:.5});";
-    const res: []const u8 = smoothCombinatorExitCommand(command, data.enter_stack, data.enter_index, ctxt, data.smoothing);
+    const res: []const u8 = util.smoothCombinatorExitCommand(command, data.enter_stack, data.enter_index, ctxt, data.smoothing);
 
     ctxt.dropPreviousValueIndexes(data.enter_stack);
 

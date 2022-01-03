@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const Quad: NodeType = .{
-    .name = nsdf.Quad.info.name,
+pub const Quad: util.NodeType = .{
+    .name = util.nsdf.Quad.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -13,32 +13,32 @@ pub const Quad: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = nsdf.Quad.Data;
+const Data = util.nsdf.Quad.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloat3Property,
-        .offset = @byteOffsetOf(Data, "point_a"),
+        .drawFn = util.prop.drawFloat3Property,
+        .offset = @offsetOf(Data, "point_a"),
         .name = "Point A",
     },
     .{
-        .drawFn = drawFloat3Property,
-        .offset = @byteOffsetOf(Data, "point_b"),
+        .drawFn = util.prop.drawFloat3Property,
+        .offset = @offsetOf(Data, "point_b"),
         .name = "Point B",
     },
     .{
-        .drawFn = drawFloat3Property,
-        .offset = @byteOffsetOf(Data, "point_c"),
+        .drawFn = util.prop.drawFloat3Property,
+        .offset = @offsetOf(Data, "point_c"),
         .name = "Point C",
     },
     .{
-        .drawFn = drawFloat3Property,
-        .offset = @byteOffsetOf(Data, "point_d"),
+        .drawFn = util.prop.drawFloat3Property,
+        .offset = @offsetOf(Data, "point_d"),
         .name = "Point D",
     },
     .{
-        .drawFn = drawMaterialProperty,
-        .offset = @byteOffsetOf(Data, "mat"),
+        .drawFn = util.prop.drawMaterialProperty,
+        .offset = @offsetOf(Data, "mat"),
         .name = "Material",
     },
 };
@@ -68,7 +68,7 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.point_a = .{ 0.0, 0.0, 0.0 };
     data.point_b = .{ 0.0, 1.0, 0.0 };
@@ -76,25 +76,27 @@ fn initData(buffer: *[]u8) void {
     data.point_d = .{ 1.0, 0.0, 0.0 };
     data.mat = 0;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
     ctxt.pushStackInfo(iter, @intCast(i32, data.mat + mat_offset));
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     const format: []const u8 = "float d{d} = sdQuad({s},vec3({d:.5},{d:.5},{d:.5}),vec3({d:.5},{d:.5},{d:.5}),vec3({d:.5},{d:.5},{d:.5}),vec3({d:.5},{d:.5},{d:.5}));";
 
-    const res: []const u8 = std.fmt.allocPrint(ctxt.allocator, format, .{
+    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{
         data.enter_index,
         ctxt.cur_point_name,
         data.point_a[0],
@@ -116,18 +118,18 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     return res;
 }
 
-pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: *std.mem.Allocator) []const u8 {
+pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: util.std.mem.Allocator) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     const format: []const u8 = "{s}if(d{d}<MAP_EPS)return matToColor({d}.,l,n,v);";
-    return std.fmt.allocPrint(allocator, format, .{
+    return util.std.fmt.allocPrint(allocator, format, .{
         exit_command,
         data.enter_index,
         data.mat + mat_offset,
     }) catch unreachable;
 }
 
-pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_a }) catch unreachable;

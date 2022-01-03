@@ -175,7 +175,7 @@ const Context = struct {
 
     iteration_context: IterationContext,
 
-    pub fn create(allocator: *std.mem.Allocator) Context {
+    pub fn create(allocator: std.mem.Allocator) Context {
         return .{
             .file_to_material_offset = FileMatOffsetMap.init(allocator),
             .used_material_types = NodeTypesArray.init(allocator),
@@ -276,7 +276,7 @@ fn settingsDefines(ctxt: *Context, settings: *SceneNode) []const u8 {
     return res;
 }
 
-fn functionDecls(ctxt: *Context, allocator: *std.mem.Allocator) []const u8 {
+fn functionDecls(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     var decls: [][]const u8 = allocator.alloc([]const u8, ctxt.used_node_types.items.len + ctxt.used_material_types.items.len) catch unreachable;
 
     for (ctxt.used_node_types.items) |t, ind|
@@ -292,21 +292,21 @@ fn functionDecls(ctxt: *Context, allocator: *std.mem.Allocator) []const u8 {
     return res;
 }
 
-fn mapCommands(ctxt: *Context, allocator: *std.mem.Allocator) []const u8 {
+fn mapCommands(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     const res: []const u8 = std.mem.concat(allocator, u8, ctxt.node_commands.items) catch unreachable;
     for (ctxt.node_commands.items) |c|
         allocator.free(c);
     return res;
 }
 
-fn matMapCommands(ctxt: *Context, allocator: *std.mem.Allocator) []const u8 {
+fn matMapCommands(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     const res: []const u8 = std.mem.concat(allocator, u8, ctxt.node_with_mat_commands.items) catch unreachable;
     for (ctxt.node_with_mat_commands.items) |c|
         allocator.free(c);
     return res;
 }
 
-fn matToColorCommands(ctxt: *Context, allocator: *std.mem.Allocator) []const u8 {
+fn matToColorCommands(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     var decls: [][]const u8 = allocator.alloc([]const u8, ctxt.used_materials.items.len) catch unreachable;
 
     for (ctxt.used_materials.items) |mat, ind| {

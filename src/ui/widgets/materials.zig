@@ -32,7 +32,9 @@ pub const Materials = struct {
         self.selected_scene_node = selected_scene_node;
     }
 
-    pub fn deinit(self: *Materials) void {}
+    pub fn deinit(self: *Materials) void {
+        _ = self;
+    }
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);

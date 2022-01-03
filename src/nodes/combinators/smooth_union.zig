@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const SmoothUnion: NodeType = .{
-    .name = nsdf.SmoothUnion.info.name,
+pub const SmoothUnion: util.NodeType = .{
+    .name = util.nsdf.SmoothUnion.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -14,13 +14,13 @@ pub const SmoothUnion: NodeType = .{
     .maxChildCount = 2,
 };
 
-const Data = nsdf.SmoothUnion.Data;
+const Data = util.nsdf.SmoothUnion.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloatProperty,
+        .drawFn = util.prop.drawFloatProperty,
         .name = "Smoothing",
-        .offset = @byteOffsetOf(Data, "smoothing"),
+        .offset = @offsetOf(Data, "smoothing"),
     },
 };
 
@@ -33,14 +33,14 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.smoothing = 0.5;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     data.enter_index = iter;
@@ -50,10 +50,12 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
     data.mats[0] = @intCast(i32, mat_offset);
     data.mats[1] = @intCast(i32, mat_offset);
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "float d{d} = opSmoothUnion(d{d}, d{d}, {d:.5});";
@@ -61,17 +63,17 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
 
     var res: []const u8 = undefined;
     if (data.enter_stack + 2 >= ctxt.value_indexes.items.len) {
-        res = std.fmt.allocPrint(ctxt.allocator, broken_stack, .{data.enter_index}) catch unreachable;
+        res = util.std.fmt.allocPrint(ctxt.allocator, broken_stack, .{data.enter_index}) catch unreachable;
 
         data.mats[0] = 0;
         data.mats[1] = 0;
         data.dist_indexes[0] = data.enter_index;
         data.dist_indexes[1] = data.enter_index;
     } else {
-        const prev_info: IterationContext.StackInfo = ctxt.value_indexes.items[ctxt.value_indexes.items.len - 1];
-        const prev_prev_info: IterationContext.StackInfo = ctxt.value_indexes.items[ctxt.value_indexes.items.len - 2];
+        const prev_info: util.IterationContext.StackInfo = ctxt.value_indexes.items[ctxt.value_indexes.items.len - 1];
+        const prev_prev_info: util.IterationContext.StackInfo = ctxt.value_indexes.items[ctxt.value_indexes.items.len - 2];
 
-        res = std.fmt.allocPrint(ctxt.allocator, format, .{
+        res = util.std.fmt.allocPrint(ctxt.allocator, format, .{
             data.enter_index,
             ctxt.last_value_set_index,
             prev_prev_info.index,
@@ -89,7 +91,9 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     return res;
 }
 
-fn appendMatCheck(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: *std.mem.Allocator) []const u8 {
+fn appendMatCheck(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: util.std.mem.Allocator) []const u8 {
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format_mat: []const u8 = "matToColor({d}.,l,n,v)";
@@ -98,15 +102,15 @@ fn appendMatCheck(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, al
     var mat_str: [2][]const u8 = .{undefined} ** 2;
     for (mat_str) |_, ind| {
         if (data.mats[ind] >= 0) {
-            mat_str[ind] = std.fmt.allocPrint(allocator, format_mat, .{data.mats[ind]}) catch unreachable;
+            mat_str[ind] = util.std.fmt.allocPrint(allocator, format_mat, .{data.mats[ind]}) catch unreachable;
         } else {
-            mat_str[ind] = std.fmt.allocPrint(allocator, format_gen_mat, .{-data.mats[ind]}) catch unreachable;
+            mat_str[ind] = util.std.fmt.allocPrint(allocator, format_gen_mat, .{-data.mats[ind]}) catch unreachable;
         }
     }
 
     const format: []const u8 = "{s}vec3 m{d} = mix({s},{s},d{d}/(d{d}+d{d}));if(d{d}<MAP_EPS)return m{d};";
 
-    const res: []const u8 = std.fmt.allocPrint(allocator, format, .{
+    const res: []const u8 = util.std.fmt.allocPrint(allocator, format, .{
         exit_command,
         data.enter_index,
         mat_str[0],

@@ -44,7 +44,7 @@ pub const GizmoStorage = struct {
     scene_node: ?*SceneNode,
     points_to_transform: std.ArrayList(nm.vec4),
 
-    pub fn init(self: *GizmoStorage, allocator: *Allocator) void {
+    pub fn init(self: *GizmoStorage, allocator: Allocator) void {
         self.size_gizmos = std.ArrayList(SizeGizmo).init(allocator);
         self.translation_gizmos = std.ArrayList(TranslationGizmo).init(allocator);
         self.rotation_gizmos = std.ArrayList(RotationGizmo).init(allocator);

@@ -72,7 +72,9 @@ pub const Viewport = struct {
         self.export2dPopup = undefined;
     }
 
-    pub fn deinit(self: *Viewport) void {}
+    pub fn deinit(self: *Viewport) void {
+        _ = self;
+    }
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
@@ -180,7 +182,7 @@ pub const Viewport = struct {
         }
 
         nc.igImage(
-            @ptrCast(*c_void, &self.descriptor_sets[nyan.global_render_graph.frame_index]),
+            @ptrCast(*anyopaque, &self.descriptor_sets[nyan.global_render_graph.frame_index]),
             .{ .x = max_pos.x - min_pos.x, .y = @intToFloat(f32, cur_height) },
             .{ .x = 0, .y = 0 },
             .{ .x = 1, .y = 1 },

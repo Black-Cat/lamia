@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const Twist: NodeType = .{
-    .name = nsdf.Twist.info.name,
+pub const Twist: util.NodeType = .{
+    .name = util.nsdf.Twist.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -11,12 +11,12 @@ pub const Twist: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = nsdf.Twist.Data;
+const Data = util.nsdf.Twist.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "power"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "power"),
         .name = "Power",
     },
 };
@@ -33,27 +33,32 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.power = 1.0;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
-    const next_point: []const u8 = std.fmt.allocPrint(ctxt.allocator, "p{d}", .{iter}) catch unreachable;
+    const next_point: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, "p{d}", .{iter}) catch unreachable;
 
     const format: []const u8 = "vec3 {s} = opTwist({s}, {d:.5});";
-    const res: []const u8 = std.fmt.allocPrint(ctxt.allocator, format, .{ next_point, ctxt.cur_point_name, data.power }) catch unreachable;
+    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{ next_point, ctxt.cur_point_name, data.power }) catch unreachable;
 
     ctxt.pushPointName(next_point);
 
     return res;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+    _ = buffer;
+
     ctxt.popPointName();
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }

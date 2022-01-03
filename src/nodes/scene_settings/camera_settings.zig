@@ -1,6 +1,6 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const CameraSettings: NodeType = .{
+pub const CameraSettings: util.NodeType = .{
     .name = "Camera Settings",
     .function_defenition = "",
 
@@ -28,37 +28,37 @@ pub const Data = struct {
     projection: ProjectionType,
 };
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "near"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "near"),
         .name = "Near",
     },
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "far"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "far"),
         .name = "Far",
     },
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "fov"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "fov"),
         .name = "FOV",
     },
     .{
-        .drawFn = drawU32Property,
-        .offset = @byteOffsetOf(Data, "steps"),
+        .drawFn = util.prop.drawU32Property,
+        .offset = @offsetOf(Data, "steps"),
         .name = "Max Steps",
     },
     .{
-        .drawFn = drawEnumProperty,
-        .offset = @byteOffsetOf(Data, "projection"),
+        .drawFn = util.prop.drawEnumProperty,
+        .offset = @offsetOf(Data, "projection"),
         .name = "Projection",
         .enum_combo_names = Data.projection_names[0..],
     },
 };
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.near = 0.1;
     data.far = 100.0;
@@ -66,13 +66,16 @@ fn initData(buffer: *[]u8) void {
     data.steps = 128;
     data.projection = .perspective;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
-    comptime const format: []const u8 =
+    const format: []const u8 =
         \\#define CAMERA_NEAR {d:.5}
         \\#define CAMERA_FAR {d:.5}
         \\#define CAMERA_FOV {d:.5}
@@ -81,10 +84,10 @@ fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer:
         \\
     ;
 
-    return std.fmt.allocPrint(ctxt.allocator, format, .{
+    return util.std.fmt.allocPrint(ctxt.allocator, format, .{
         data.near,
         data.far,
-        std.math.tan(data.fov / 2.0 * (std.math.pi / 180.0)),
+        util.std.math.tan(data.fov / 2.0 * (util.std.math.pi / 180.0)),
         data.steps,
         @enumToInt(data.projection),
     }) catch unreachable;

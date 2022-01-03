@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const OrenNayar: NodeType = .{
-    .name = nsdf.OrenNayar.info.name,
+pub const OrenNayar: util.NodeType = .{
+    .name = util.nsdf.OrenNayar.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -10,17 +10,17 @@ pub const OrenNayar: NodeType = .{
     .enterCommandFn = enterCommand,
 };
 
-const Data = nsdf.OrenNayar.Data;
+const Data = util.nsdf.OrenNayar.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawColor3Property,
-        .offset = @byteOffsetOf(Data, "color"),
+        .drawFn = util.prop.drawColor3Property,
+        .offset = @offsetOf(Data, "color"),
         .name = "Color",
     },
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "roughness"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "roughness"),
         .name = "Roughness",
     },
 };
@@ -41,20 +41,23 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.color = [3]f32{ 0.8, 0.8, 0.8 };
     data.roughness = 1.0;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "res = matOrenNayar(l,n,v,vec3({d:.5},{d:.5},{d:.5}),{d:.5});";
 
-    return std.fmt.allocPrint(ctxt.allocator, format, .{
+    return util.std.fmt.allocPrint(ctxt.allocator, format, .{
         data.color[0],
         data.color[1],
         data.color[2],

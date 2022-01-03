@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const CustomMaterial: NodeType = .{
-    .name = nsdf.CustomMaterial.info.name,
+pub const CustomMaterial: util.NodeType = .{
+    .name = util.nsdf.CustomMaterial.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],
@@ -10,11 +10,11 @@ pub const CustomMaterial: NodeType = .{
     .enterCommandFn = enterCommand,
 };
 
-const Data = nsdf.CustomMaterial.Data;
+const Data = util.nsdf.CustomMaterial.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawHelpProperty,
+        .drawFn = util.prop.drawHelpProperty,
         .offset = undefined,
         .name = 
         \\Values:
@@ -25,23 +25,26 @@ const properties = [_]NodeProperty{
         ,
     },
     .{
-        .drawFn = drawCodeProperty,
-        .offset = @byteOffsetOf(Data, "material_function"),
+        .drawFn = util.prop.drawCodeProperty,
+        .offset = @offsetOf(Data, "material_function"),
         .name = "Code",
         .prop_len = Data.max_func_len,
     },
 };
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
-    setBuffer(data.material_function[0..], "float nl = dot(n, l);\nres = vec3(max(0., nl));\n");
+    util.setBuffer(data.material_function[0..], "float nl = dot(n, l);\nres = vec3(max(0., nl));\n");
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
-    return std.fmt.allocPrint(ctxt.allocator, "{s}", .{@ptrCast([*c]const u8, &data.material_function)}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "{s}", .{@ptrCast([*c]const u8, &data.material_function)}) catch unreachable;
 }

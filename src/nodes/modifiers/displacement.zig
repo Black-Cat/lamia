@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const Displacement: NodeType = .{
-    .name = nsdf.Displacement.info.name,
+pub const Displacement: util.NodeType = .{
+    .name = util.nsdf.Displacement.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -11,12 +11,12 @@ pub const Displacement: NodeType = .{
     .exitCommandFn = exitCommand,
 };
 
-const Data = nsdf.Displacement.Data;
+const Data = util.nsdf.Displacement.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "power"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "power"),
         .name = "Power",
     },
 };
@@ -29,24 +29,28 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.power = 0.5;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
     ctxt.pushStackInfo(iter, 0);
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "float d{d} = opDisplace(d{d}, {s}, {d:.5});";
@@ -54,9 +58,9 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
 
     var res: []const u8 = undefined;
     if (data.enter_index == ctxt.last_value_set_index) {
-        res = std.fmt.allocPrint(ctxt.allocator, broken_stack, .{data.enter_index}) catch unreachable;
+        res = util.std.fmt.allocPrint(ctxt.allocator, broken_stack, .{data.enter_index}) catch unreachable;
     } else {
-        res = std.fmt.allocPrint(ctxt.allocator, format, .{
+        res = util.std.fmt.allocPrint(ctxt.allocator, format, .{
             data.enter_index,
             ctxt.last_value_set_index,
             ctxt.cur_point_name,

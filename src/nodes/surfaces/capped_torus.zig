@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const CappedTorus: NodeType = .{
-    .name = nsdf.CappedTorus.info.name,
+pub const CappedTorus: util.NodeType = .{
+    .name = util.nsdf.CappedTorus.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -13,27 +13,27 @@ pub const CappedTorus: NodeType = .{
     .appendGizmosFn = appendGizmos,
 };
 
-const Data = nsdf.CappedTorus.Data;
+const Data = util.nsdf.CappedTorus.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "angle"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "angle"),
         .name = "Angle",
     },
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "inner_radius"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "inner_radius"),
         .name = "Inner Radius",
     },
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "outer_radius"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "outer_radius"),
         .name = "Outer Radius",
     },
     .{
-        .drawFn = drawMaterialProperty,
-        .offset = @byteOffsetOf(Data, "mat"),
+        .drawFn = util.prop.drawMaterialProperty,
+        .offset = @offsetOf(Data, "mat"),
         .name = "Material",
     },
 };
@@ -48,32 +48,34 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.angle = 2.0;
     data.inner_radius = 0.4;
     data.outer_radius = 0.1;
     data.mat = 0;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
     ctxt.pushStackInfo(iter, @intCast(i32, data.mat + mat_offset));
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "float d{d} = sdCappedTorus({s}, vec2({d:.5},{d:.5}),{d:.5},{d:.5});";
 
-    const res: []const u8 = std.fmt.allocPrint(ctxt.allocator, format, .{
+    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{
         data.enter_index,
         ctxt.cur_point_name,
         @sin(data.angle),
@@ -87,18 +89,18 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     return res;
 }
 
-pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: *std.mem.Allocator) []const u8 {
+pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: util.std.mem.Allocator) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "{s}if(d{d}<MAP_EPS)return matToColor({d}.,l,n,v);";
-    return std.fmt.allocPrint(allocator, format, .{
+    return util.std.fmt.allocPrint(allocator, format, .{
         exit_command,
         data.enter_index,
         data.mat + mat_offset,
     }) catch unreachable;
 }
 
-pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *GizmoStorage) void {
+pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     gizmos_storage.size_gizmos.append(.{

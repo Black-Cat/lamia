@@ -6,7 +6,7 @@ const Global = @import("global.zig");
 const std = @import("std");
 
 pub fn main() !void {
-    const allocator: *std.mem.Allocator = std.testing.allocator;
+    const allocator: std.mem.Allocator = std.testing.allocator;
 
     var renderer: nyan.DefaultRenderer = undefined;
     renderer.init("Main Renderer", allocator);

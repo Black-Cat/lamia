@@ -29,6 +29,8 @@ pub fn drawU32Property(self: *const NodeProperty, data: *[]u8) bool {
 
 // Put help text in the NodeProperty.name
 pub fn drawHelpProperty(self: *const NodeProperty, data: *[]u8) bool {
+    _ = data;
+
     nc.igText(self.name.ptr);
     return false;
 }

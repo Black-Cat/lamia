@@ -12,7 +12,8 @@ pub const SizeGizmo = viewport_gizmos.SizeGizmo;
 pub const TranslationGizmo = viewport_gizmos.TranslationGizmo;
 pub const RotationGizmo = viewport_gizmos.RotationGizmo;
 
-pub usingnamespace @import("node_property.zig");
+pub const prop = @import("node_property.zig");
+pub const NodeProperty = prop.NodeProperty;
 
 pub fn setBuffer(buffer: []u8, data: []const u8) void {
     @memcpy(@ptrCast([*]u8, &buffer[0]), data.ptr, data.len + 1);

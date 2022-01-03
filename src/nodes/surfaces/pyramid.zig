@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const Pyramid: NodeType = .{
-    .name = nsdf.Pyramid.info.name,
+pub const Pyramid: util.NodeType = .{
+    .name = util.nsdf.Pyramid.info.name,
     .function_defenition = function_defenition,
 
     .properties = properties[0..],
@@ -12,17 +12,17 @@ pub const Pyramid: NodeType = .{
     .appendMatCheckFn = appendMatCheckSurface,
 };
 
-const Data = nsdf.Pyramid.Data;
+const Data = util.nsdf.Pyramid.Data;
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawFloatProperty,
-        .offset = @byteOffsetOf(Data, "height"),
+        .drawFn = util.prop.drawFloatProperty,
+        .offset = @offsetOf(Data, "height"),
         .name = "Height",
     },
     .{
-        .drawFn = drawMaterialProperty,
-        .offset = @byteOffsetOf(Data, "mat"),
+        .drawFn = util.prop.drawMaterialProperty,
+        .offset = @offsetOf(Data, "mat"),
         .name = "Material",
     },
 };
@@ -45,30 +45,32 @@ const function_defenition: []const u8 =
 ;
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.height = 1.0;
     data.mat = 0;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
     ctxt.pushStackInfo(iter, @intCast(i32, data.mat + mat_offset));
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "float d{d} = sdPyramid({s},{d:.5});";
 
-    const res: []const u8 = std.fmt.allocPrint(ctxt.allocator, format, .{
+    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{
         data.enter_index,
         ctxt.cur_point_name,
         data.height,
@@ -79,11 +81,11 @@ fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
     return res;
 }
 
-pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: *std.mem.Allocator) []const u8 {
+pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: util.std.mem.Allocator) []const u8 {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const format: []const u8 = "{s}if(d{d}<MAP_EPS)return matToColor({d}.,l,n,v);";
-    return std.fmt.allocPrint(allocator, format, .{
+    return util.std.fmt.allocPrint(allocator, format, .{
         exit_command,
         data.enter_index,
         data.mat + mat_offset,

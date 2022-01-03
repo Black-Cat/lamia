@@ -1,7 +1,7 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const Intersection: NodeType = .{
-    .name = nsdf.Intersection.info.name,
+pub const Intersection: util.NodeType = .{
+    .name = util.nsdf.Intersection.info.name,
     .function_defenition = "",
 
     .properties = properties[0..],
@@ -10,34 +10,38 @@ pub const Intersection: NodeType = .{
     .enterCommandFn = enterCommand,
     .exitCommandFn = exitCommand,
 
-    .maxChildCount = std.math.maxInt(usize),
+    .maxChildCount = util.std.math.maxInt(usize),
 };
 
-const Data = nsdf.Intersection.Data;
+const Data = util.nsdf.Intersection.Data;
 
-const properties = [_]NodeProperty{};
+const properties = [_]util.NodeProperty{};
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     data.enter_index = iter;
     data.enter_stack = ctxt.value_indexes.items.len;
     ctxt.pushStackInfo(iter, 0);
 
-    return std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
+    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
-fn exitCommand(ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     const command: []const u8 = "d{d} = max(d{d}, d{d});";
-    const res: []const u8 = combinatorExitCommand(command, data.enter_stack, data.enter_index, ctxt);
+    const res: []const u8 = util.combinatorExitCommand(command, data.enter_stack, data.enter_index, ctxt);
 
     ctxt.dropPreviousValueIndexes(data.enter_stack);
 

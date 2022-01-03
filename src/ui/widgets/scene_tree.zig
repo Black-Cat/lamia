@@ -47,7 +47,9 @@ pub const SceneTree = struct {
         self.cleanSelectedPath();
     }
 
-    pub fn deinit(self: *SceneTree) void {}
+    pub fn deinit(self: *SceneTree) void {
+        _ = self;
+    }
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
@@ -62,10 +64,10 @@ pub const SceneTree = struct {
         nyan.app.config.map.put(scene_tree_key_open, if (self.window.open) "1" else "0") catch unreachable;
     }
 
-    fn drawNodeCollection(self: *SceneTree, collection: []const NodeType) void {
+    fn drawNodeCollection(collection: []const NodeType) void {
         for (collection) |*node_type|
             if (nc.igSelectable_Bool(node_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
-                self.addNode(node_type);
+                addNode(node_type);
     }
 
     fn windowDraw(widget: *Widget) void {
@@ -108,13 +110,13 @@ pub const SceneTree = struct {
 
             nc.igSeparator();
 
-            self.drawNodeCollection(NodeCollection.surfaces[0..]);
+            drawNodeCollection(NodeCollection.surfaces[0..]);
             nc.igNextColumn();
-            self.drawNodeCollection(NodeCollection.modifiers[0..]);
+            drawNodeCollection(NodeCollection.modifiers[0..]);
             nc.igNextColumn();
-            self.drawNodeCollection(NodeCollection.combinators[0..]);
+            drawNodeCollection(NodeCollection.combinators[0..]);
             nc.igNextColumn();
-            self.drawNodeCollection(NodeCollection.special[0..]);
+            drawNodeCollection(NodeCollection.special[0..]);
 
             nc.igColumns(1, null, true);
             nc.igSetCursorPosX(600);
@@ -154,7 +156,7 @@ pub const SceneTree = struct {
         nc.igEnd();
     }
 
-    fn addNode(self: *SceneTree, node_type: *const NodeType) void {
+    fn addNode(node_type: *const NodeType) void {
         var node: *SceneNode = Global.main_scene.root.add();
         node.init(node_type, node_type.name, &Global.main_scene.root);
         Global.main_scene.recompile();
@@ -280,7 +282,7 @@ pub const SceneTree = struct {
     fn sceneNodeDragDrop(self: *SceneTree, node: *SceneNode) void {
         if (nc.igBeginDragDropSource(nc.ImGuiDragDropFlags_SourceNoDisableHover | nc.ImGuiDragDropFlags_SourceNoHoldToOpenOthers)) {
             nc.igText("Moving \"%s\"", node.name);
-            _ = nc.igSetDragDropPayload("DND_SCENE_NODE", @ptrCast(*const c_void, &node), @sizeOf(*SceneNode), nc.ImGuiCond_Once);
+            _ = nc.igSetDragDropPayload("DND_SCENE_NODE", @ptrCast(*const anyopaque, &node), @sizeOf(*SceneNode), nc.ImGuiCond_Once);
             nc.igEndDragDropSource();
         }
 

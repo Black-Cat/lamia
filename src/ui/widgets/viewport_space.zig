@@ -30,7 +30,9 @@ pub const ViewportSpace = struct {
         self.gizmo_storage = gizmos;
     }
 
-    pub fn deinit(self: *ViewportSpace) void {}
+    pub fn deinit(self: *ViewportSpace) void {
+        _ = self;
+    }
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);

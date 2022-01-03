@@ -48,7 +48,7 @@ pub const UI = struct {
     selected_scene_node: ?*SceneNode,
     gizmo_storage: GizmoStorage,
 
-    pub fn init(self: *UI, allocator: *Allocator) void {
+    pub fn init(self: *UI, allocator: Allocator) void {
         self.nyanui.init("Nyan UI", allocator);
         self.nyanui.paletteFn = UI.palette;
         self.nyanui.drawFn = UI.draw;
@@ -183,7 +183,7 @@ pub const UI = struct {
     }
 
     fn palette(col: nc.ImGuiCol_) nc.ImVec4 {
-        return switch (@enumToInt(col)) {
+        return switch (col) {
             nc.ImGuiCol_Text => .{ .x = 0.0, .y = 0.1, .z = 0.1, .w = 1.0 },
             nc.ImGuiCol_TextDisabled => mainColors[1],
             nc.ImGuiCol_WindowBg => mainColors[3],

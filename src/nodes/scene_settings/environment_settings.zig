@@ -1,6 +1,6 @@
-usingnamespace @import("../node_utils.zig");
+const util = @import("../node_utils.zig");
 
-pub const EnvironmentSettings: NodeType = .{
+pub const EnvironmentSettings: util.NodeType = .{
     .name = "Environment Settings",
     .function_defenition = "",
 
@@ -17,45 +17,48 @@ pub const Data = struct {
     shadow_steps: u32,
 };
 
-const properties = [_]NodeProperty{
+const properties = [_]util.NodeProperty{
     .{
-        .drawFn = drawColor3Property,
-        .offset = @byteOffsetOf(Data, "background_color"),
+        .drawFn = util.prop.drawColor3Property,
+        .offset = @offsetOf(Data, "background_color"),
         .name = "Background Color",
     },
     .{
-        .drawFn = drawFloat3Property,
-        .offset = @byteOffsetOf(Data, "light_dir"),
+        .drawFn = util.prop.drawFloat3Property,
+        .offset = @offsetOf(Data, "light_dir"),
         .name = "Light Direction",
     },
     .{
-        .drawFn = drawU32Property,
-        .offset = @byteOffsetOf(Data, "shadow_steps"),
+        .drawFn = util.prop.drawU32Property,
+        .offset = @offsetOf(Data, "shadow_steps"),
         .name = "Shadow Steps",
     },
 };
 
 fn initData(buffer: *[]u8) void {
-    const data: *Data = nyan.app.allocator.create(Data) catch unreachable;
+    const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.background_color = [_]f32{ 0.281, 0.281, 0.281 };
     data.light_dir = [_]f32{ 0.57, 0.57, -0.57 };
     data.shadow_steps = 32;
 
-    buffer.* = std.mem.asBytes(data);
+    buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
+    _ = iter;
+    _ = mat_offset;
+
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
-    comptime const format: []const u8 =
+    const format: []const u8 =
         \\#define ENVIRONMENT_BACKGROUND_COLOR vec3({d:.5},{d:.5},{d:.5})
         \\#define ENVIRONMENT_LIGHT_DIR vec3({d:.5},{d:.5},{d:.5})
         \\#define ENVIRONMENT_SHADOW_STEPS {d}
         \\
     ;
 
-    return std.fmt.allocPrint(ctxt.allocator, format, .{
+    return util.std.fmt.allocPrint(ctxt.allocator, format, .{
         data.background_color[0],
         data.background_color[1],
         data.background_color[2],

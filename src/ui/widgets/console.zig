@@ -21,7 +21,9 @@ pub const Console = struct {
         };
     }
 
-    pub fn deinit(self: *Console) void {}
+    pub fn deinit(self: *Console) void {
+        _ = self;
+    }
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);

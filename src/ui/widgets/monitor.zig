@@ -31,7 +31,9 @@ pub const Monitor = struct {
         self.current_frame = 0;
     }
 
-    pub fn deinit(self: *Monitor) void {}
+    pub fn deinit(self: *Monitor) void {
+        _ = self;
+    }
 
     fn windowInit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);

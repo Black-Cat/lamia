@@ -16,9 +16,9 @@ pub const IterationContext = struct {
     points: std.ArrayList([]const u8),
     cur_point_name: []const u8,
 
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
 
-    pub fn create(allocator: *std.mem.Allocator) IterationContext {
+    pub fn create(allocator: std.mem.Allocator) IterationContext {
         var cntx: IterationContext = .{
             .allocator = allocator,
 
@@ -66,12 +66,22 @@ pub const IterationContext = struct {
     }
 };
 
-fn appendNoMatCheck(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, alloc: *std.mem.Allocator) []const u8 {
+fn appendNoMatCheck(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, alloc: std.mem.Allocator) []const u8 {
+    _ = buffer;
+    _ = mat_offset;
+
     return alloc.dupe(u8, exit_command) catch unreachable;
 }
 
-fn appendNoGizmos(buffer: *[]u8, gizmo_storage: *GizmoStorage) void {}
-fn dontModifyGizmos(buffer: *[]u8, points: []nm.vec4) void {}
+fn appendNoGizmos(buffer: *[]u8, gizmo_storage: *GizmoStorage) void {
+    _ = buffer;
+    _ = gizmo_storage;
+}
+
+fn dontModifyGizmos(buffer: *[]u8, points: []nm.vec4) void {
+    _ = buffer;
+    _ = points;
+}
 
 pub const NodeType = struct {
     name: []const u8,
@@ -95,7 +105,7 @@ pub const NodeType = struct {
     enterCommandFn: fn (ctxt: *IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 = undefined,
     exitCommandFn: fn (ctxt: *IterationContext, iter: usize, buffer: *[]u8) []const u8 = undefined,
 
-    appendMatCheckFn: fn (exit_command: []const u8, buffer: *[]u8, mat_offset: usize, alloc: *std.mem.Allocator) []const u8 = appendNoMatCheck,
+    appendMatCheckFn: fn (exit_command: []const u8, buffer: *[]u8, mat_offset: usize, alloc: std.mem.Allocator) []const u8 = appendNoMatCheck,
 
     appendGizmosFn: fn (buffer: *[]u8, gizmo_storage: *GizmoStorage) void = appendNoGizmos,
 

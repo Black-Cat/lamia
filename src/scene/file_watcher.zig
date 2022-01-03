@@ -15,12 +15,12 @@ const PathList = std.ArrayList([]const u8);
 
 pub const FileWatcher = struct {
     system: nyan.System,
-    allocator: *Allocator,
+    allocator: Allocator,
     map: FileMap,
     toRemove: PathList,
     timer: f64,
 
-    pub fn init(self: *FileWatcher, allocator: *Allocator) void {
+    pub fn init(self: *FileWatcher, allocator: Allocator) void {
         self.system = .{
             .name = "File Watcher",
             .init = systemInit,
@@ -60,9 +60,14 @@ pub const FileWatcher = struct {
         return true;
     }
 
-    fn systemInit(system: *nyan.System, app: *nyan.Application) void {}
+    fn systemInit(system: *nyan.System, app: *nyan.Application) void {
+        _ = system;
+        _ = app;
+    }
 
-    fn systemDeinit(system: *nyan.System) void {}
+    fn systemDeinit(system: *nyan.System) void {
+        _ = system;
+    }
 
     fn systemUpdate(system: *nyan.System, elapsed_time: f64) void {
         const self: *FileWatcher = @fieldParentPtr(FileWatcher, "system", system);
