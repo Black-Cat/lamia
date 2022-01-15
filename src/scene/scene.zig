@@ -54,7 +54,7 @@ pub const Scene = struct {
         }
 
         var default_material: *SceneNode = self.materials.add();
-        default_material.init(&node_collection.materials[1], "Default Material", &self.materials);
+        default_material.init(node_collection.node_map.get("Lambert").?, "Default Material", &self.materials);
 
         self.create_shader_resource();
         self.findSettings();
