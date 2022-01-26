@@ -2,13 +2,13 @@ const util = @import("../node_utils.zig");
 
 pub const EnvironmentSettings: util.NodeType = .{
     .name = "Environment Settings",
-    .function_defenition = "",
+    .function_definition = "",
 
     .properties = properties[0..],
 
     .init_data_fn = initData,
 
-    .enterCommandFn = enterCommand,
+    .enter_command_fn = enterCommand,
 };
 
 pub const Data = struct {

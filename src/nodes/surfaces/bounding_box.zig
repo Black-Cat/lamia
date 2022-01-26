@@ -1,15 +1,17 @@
 const util = @import("../node_utils.zig");
 
+const info = util.nsdf.BoundingBox.info;
+
 pub const BoundingBox: util.NodeType = .{
-    .name = util.nsdf.BoundingBox.info.name,
-    .function_defenition = function_defenition,
+    .name = info.name,
+    .function_definition = info.function_definition,
 
     .properties = properties[0..],
 
     .init_data_fn = initData,
-    .enterCommandFn = enterCommand,
-    .exitCommandFn = exitCommand,
-    .appendMatCheckFn = appendMatCheckSurface,
+    .enter_command_fn = info.enter_command_fn,
+    .exit_command_fn = info.exit_command_fn,
+    .append_mat_check_fn = info.append_mat_check_fn,
     .appendGizmosFn = appendGizmos,
 };
 
@@ -33,18 +35,6 @@ const properties = [_]util.NodeProperty{
     },
 };
 
-const function_defenition: []const u8 =
-    \\float sdBoundingBox(vec3 p, vec3 b, float e){
-    \\  p = abs(p) - b - e;
-    \\  vec3 q = abs(p + e) - e;
-    \\  return min(min(
-    \\    length(max(vec3(p.x,q.y,q.z),0.))+min(max(p.x,max(q.y,q.z)),0.),
-    \\    length(max(vec3(q.x,p.y,q.z),0.))+min(max(q.x,max(p.y,q.z)),0.)),
-    \\    length(max(vec3(q.x,q.y,p.z),0.))+min(max(q.x,max(q.y,p.z)),0.));
-    \\}
-    \\
-;
-
 fn initData(buffer: *[]u8) void {
     const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
@@ -55,49 +45,7 @@ fn initData(buffer: *[]u8) void {
     buffer.* = util.std.mem.asBytes(data);
 }
 
-fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
-
-    data.enter_index = iter;
-    data.enter_stack = ctxt.value_indexes.items.len;
-    ctxt.pushStackInfo(iter, @intCast(i32, data.mat + mat_offset));
-
-    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
-}
-
-fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
-    _ = iter;
-
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
-
-    const format: []const u8 = "float d{d} = sdBoundingBox({s}, vec3({d:.5},{d:.5},{d:.5}),{d:.5});";
-
-    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{
-        data.enter_index,
-        ctxt.cur_point_name,
-        data.size[0],
-        data.size[1],
-        data.size[2],
-        data.extent,
-    }) catch unreachable;
-
-    ctxt.dropPreviousValueIndexes(data.enter_stack);
-
-    return res;
-}
-
-pub fn appendMatCheckSurface(exit_command: []const u8, buffer: *[]u8, mat_offset: usize, allocator: util.std.mem.Allocator) []const u8 {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
-
-    const format: []const u8 = "{s}if(d{d}<MAP_EPS)return matToColor({d}.,l,n,v);";
-    return util.std.fmt.allocPrint(allocator, format, .{
-        exit_command,
-        data.enter_index,
-        data.mat + mat_offset,
-    }) catch unreachable;
-}
-
-pub fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
+fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
 
     var i: usize = 0;

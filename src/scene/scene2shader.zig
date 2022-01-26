@@ -1,11 +1,11 @@
 const std = @import("std");
 const nyan = @import("nyancore");
+const nsdf = nyan.Sdf;
 const vk = nyan.vk;
 
 const Scene = @import("scene.zig").Scene;
 const SceneNode = @import("scene_node.zig").SceneNode;
 const NodeType = @import("../nodes/node_type.zig").NodeType;
-const IterationContext = @import("../nodes/node_type.zig").IterationContext;
 const FileNodeData = @import("../nodes/special/file_scene_node.zig").Data;
 
 const Global = @import("../global.zig");
@@ -31,136 +31,6 @@ const NodeTypesArray = std.ArrayList(*const NodeType);
 const NodeArray = std.ArrayList(*SceneNode);
 const TextArray = std.ArrayList([]const u8);
 
-const layout: []const u8 =
-    \\layout(push_constant) uniform PushConstants {
-    \\  layout(offset = 16) vec3 eye;
-    \\  layout(offset = 32) vec3 up;
-    \\  layout(offset = 48) vec3 forward;
-    \\} pushConstants;
-    \\layout (location = 0) in vec2 inUV;
-    \\layout (location = 0) out vec4 outColor;
-    \\
-;
-
-const shader_header: []const u8 =
-    \\#define MAP_EPS .001
-    \\float dot2(in vec2 v) { return dot(v,v); }
-    \\float dot2(in vec3 v) { return dot(v,v); }
-    \\float ndot(in vec2 a, in vec2 b) { return a.x * b.x - a.y * b.y; }
-    \\
-;
-
-const map_header: []const u8 =
-    \\float map(in vec3 p) {
-    \\  vec3 cpin, cpout;
-    \\  vec3 cdin, cdout;
-    \\
-;
-
-const map_footer: []const u8 =
-    \\}
-    \\
-;
-
-const mat_to_color_header: []const u8 =
-    \\vec3 matToColor(in float m, in vec3 l, in vec3 n, in vec3 v) {
-    \\  vec3 res;
-    \\
-;
-
-const mat_to_color_footer: []const u8 =
-    \\  res = vec3(1.,0.,1.);
-    \\  return res;
-    \\}
-    \\
-;
-
-const mat_map_header: []const u8 =
-    \\vec3 matMap(in vec3 p, in vec3 l, in vec3 n, in vec3 v) {
-    \\  vec3 cpin, cpout;
-    \\  float cdin, cdout;
-    \\
-;
-
-const mat_map_footer: []const u8 =
-    \\  return matToColor(0.,l,n,v);
-    \\}
-    \\
-;
-
-const shader_normal_and_shadows =
-    \\vec3 calcNormal(in vec3 pos) {
-    \\  const float ep = .0001;
-    \\  vec2 e = vec2(1.,-1.)*.5773;
-    \\  return normalize(e.xyy * map(pos + e.xyy*ep) +
-    \\      e.yyx * map(pos + e.yyx*ep) +
-    \\      e.yxy * map(pos + e.yxy*ep) +
-    \\      e.xxx * map(pos + e.xxx*ep));
-    \\}
-    // http://iquilezles.org/www/articles/rmshadows/rmshadows.htm
-    \\float calcSoftShadows(in vec3 ro, in vec3 rd, in float mint, in float maxt) {
-    \\  float res = 1.;
-    \\  float t = mint;
-    \\  for (int i = 0; i < ENVIRONMENT_SHADOW_STEPS; i++) {
-    \\    float h = map(ro + rd * t);
-    \\    float s = clamp(8.*h/t,0.,1.);
-    \\    res = min(res, s*s*(3.-2.*s));
-    \\    t += clamp(h, .02, .1);
-    \\    if (res < .005 || t > maxt) break;
-    \\  }
-    \\  return clamp(res, 0., 1.);
-    \\}
-    \\
-;
-
-const shader_main =
-    \\void main() {
-    \\  vec2 ip = 2 * inUV - 1.;
-    \\
-    \\  vec3 tot = vec3(0.);
-    \\
-    \\  vec3 right = cross(pushConstants.up, pushConstants.forward);
-    \\  vec3 offset = right * ip.x * CAMERA_FOV;
-    \\  offset += pushConstants.up * ip.y * CAMERA_FOV;
-    \\
-    \\#if (CAMERA_PROJECTION == 0)
-    \\  vec3 ro = pushConstants.eye;
-    \\  vec3 rd = pushConstants.forward + offset;
-    \\  rd = normalize(rd);
-    \\#else
-    \\  vec3 ro = pushConstants.eye + offset;
-    \\  vec3 rd = pushConstants.forward;
-    \\#endif
-    \\
-    \\  float t = CAMERA_NEAR;
-    \\  for (int i = 0; i < CAMERA_STEPS; i++) {
-    \\    vec3 p = ro + t * rd;
-    \\    float h = map(p);
-    \\    if (abs(h) < MAP_EPS || t > CAMERA_FAR) break;
-    \\    t += h;
-    \\  }
-    \\
-    \\  vec3 col = ENVIRONMENT_BACKGROUND_COLOR;
-    \\  if (t < CAMERA_FAR) {
-    \\      vec3 pos = ro + t * rd;
-    \\      vec3 nor = calcNormal(pos);
-    \\      vec3 lig = normalize(ENVIRONMENT_LIGHT_DIR);
-    \\      vec3 hal = normalize(lig - rd);
-    \\
-    \\      col = matMap(pos, lig, nor, rd);
-    \\
-    \\      float dif = clamp(dot(nor, lig), 0., 1.);
-    \\      dif *= calcSoftShadows(pos, lig, .02, 2.5);
-    \\
-    \\      col *= dif;
-    \\  }
-    \\  tot += col;
-    \\
-    \\  outColor = vec4(tot, 1.);
-    \\}
-    \\
-;
-
 const Context = struct {
     file_to_material_offset: FileMatOffsetMap,
     used_material_types: NodeTypesArray,
@@ -173,7 +43,7 @@ const Context = struct {
     node_commands: TextArray,
     node_with_mat_commands: TextArray,
 
-    iteration_context: IterationContext,
+    iteration_context: nsdf.IterationContext,
 
     pub fn create(allocator: std.mem.Allocator) Context {
         return .{
@@ -188,7 +58,7 @@ const Context = struct {
             .node_commands = TextArray.init(allocator),
             .node_with_mat_commands = TextArray.init(allocator),
 
-            .iteration_context = IterationContext.create(allocator),
+            .iteration_context = nsdf.IterationContext.create(allocator),
         };
     }
     pub fn destroy(self: *Context) void {
@@ -240,21 +110,21 @@ fn scene2code(scene: *Scene, settings: *SceneNode) []const u8 {
     const code_pieces = [_][]const u8{
         "#version 450\n",
         settings_defines,
-        layout,
-        shader_header,
+        nsdf.Templates.layout,
+        nsdf.Templates.shader_header,
         function_decls,
-        map_header,
+        nsdf.Templates.map_header,
         map_commands,
         if (context.iteration_context.any_value_set) map_return else "return 1e10;\n",
-        map_footer,
-        mat_to_color_header,
+        nsdf.Templates.map_footer,
+        nsdf.Templates.mat_to_color_header,
         mat_to_color_commands,
-        mat_to_color_footer,
-        mat_map_header,
+        nsdf.Templates.mat_to_color_footer,
+        nsdf.Templates.mat_map_header,
         mat_map_commands,
-        mat_map_footer,
-        shader_normal_and_shadows,
-        shader_main,
+        nsdf.Templates.mat_map_footer,
+        nsdf.Templates.shader_normal_and_shadows,
+        nsdf.Templates.shader_main,
     };
 
     return std.mem.concat(nyan.app.allocator, u8, code_pieces[0..]) catch unreachable;
@@ -264,7 +134,7 @@ fn settingsDefines(ctxt: *Context, settings: *SceneNode) []const u8 {
     var defines: [][]const u8 = nyan.app.allocator.alloc([]const u8, settings.children.items.len) catch unreachable;
 
     for (settings.children.items) |s, ind|
-        defines[ind] = s.node_type.enterCommandFn(&ctxt.iteration_context, 0, 0, &s.buffer);
+        defines[ind] = s.node_type.enter_command_fn(&ctxt.iteration_context, 0, 0, &s.buffer);
 
     const res: []const u8 = std.mem.concat(nyan.app.allocator, u8, defines) catch unreachable;
 
@@ -280,10 +150,10 @@ fn functionDecls(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     var decls: [][]const u8 = allocator.alloc([]const u8, ctxt.used_node_types.items.len + ctxt.used_material_types.items.len) catch unreachable;
 
     for (ctxt.used_node_types.items) |t, ind|
-        decls[ind] = t.function_defenition;
+        decls[ind] = t.function_definition;
 
     for (ctxt.used_material_types.items) |t, ind|
-        decls[ctxt.used_node_types.items.len + ind] = t.function_defenition;
+        decls[ctxt.used_node_types.items.len + ind] = t.function_definition;
 
     const res: []const u8 = std.mem.concat(allocator, u8, decls) catch unreachable;
 
@@ -310,7 +180,7 @@ fn matToColorCommands(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     var decls: [][]const u8 = allocator.alloc([]const u8, ctxt.used_materials.items.len) catch unreachable;
 
     for (ctxt.used_materials.items) |mat, ind| {
-        const command: []const u8 = mat.node_type.enterCommandFn(&ctxt.iteration_context, 0, 0, &mat.buffer);
+        const command: []const u8 = mat.node_type.enter_command_fn(&ctxt.iteration_context, 0, 0, &mat.buffer);
         decls[ind] = std.fmt.allocPrint(allocator, "if (m < {d}.5) {{ {s} }} else ", .{ ind, command }) catch unreachable;
         allocator.free(command);
     }
@@ -352,7 +222,7 @@ fn iterateNode(ctxt: *Context, node: *SceneNode) void {
     if (!found)
         ctxt.used_node_types.append(node.node_type) catch unreachable;
 
-    const enter_command: []const u8 = node.node_type.enterCommandFn(&ctxt.iteration_context, ctxt.node_iter, ctxt.cur_mat_offset, &node.buffer);
+    const enter_command: []const u8 = node.node_type.enter_command_fn(&ctxt.iteration_context, ctxt.node_iter, ctxt.cur_mat_offset, &node.buffer);
     ctxt.node_iter += 1;
 
     ctxt.node_commands.append(enter_command) catch unreachable;
@@ -366,9 +236,9 @@ fn iterateNode(ctxt: *Context, node: *SceneNode) void {
         }
     }
 
-    const exit_command: []const u8 = node.node_type.exitCommandFn(&ctxt.iteration_context, ctxt.node_iter, &node.buffer);
+    const exit_command: []const u8 = node.node_type.exit_command_fn(&ctxt.iteration_context, ctxt.node_iter, &node.buffer);
     ctxt.node_commands.append(exit_command) catch unreachable;
-    ctxt.node_with_mat_commands.append(node.node_type.appendMatCheckFn(exit_command, &node.buffer, ctxt.cur_mat_offset, nyan.app.allocator)) catch unreachable;
+    ctxt.node_with_mat_commands.append(node.node_type.append_mat_check_fn(exit_command, &node.buffer, ctxt.cur_mat_offset, nyan.app.allocator)) catch unreachable;
 
     ctxt.node_iter += 1;
 }

@@ -1,14 +1,16 @@
 const util = @import("../node_utils.zig");
 
+const info = util.nsdf.Elongate.info;
+
 pub const Elongate: util.NodeType = .{
-    .name = util.nsdf.Elongate.info.name,
-    .function_defenition = "",
+    .name = info.name,
+    .function_definition = info.function_definition,
 
     .properties = properties[0..],
 
     .init_data_fn = initData,
-    .enterCommandFn = enterCommand,
-    .exitCommandFn = exitCommand,
+    .enter_command_fn = info.enter_command_fn,
+    .exit_command_fn = info.exit_command_fn,
 };
 
 const Data = util.nsdf.Elongate.Data;
@@ -27,33 +29,4 @@ fn initData(buffer: *[]u8) void {
     data.height = 2.0;
 
     buffer.* = util.std.mem.asBytes(data);
-}
-
-fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
-    _ = mat_offset;
-
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
-
-    const next_point: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, "p{d}", .{iter}) catch unreachable;
-
-    const format: []const u8 = "vec3 {s} = {s} - clamp({s}, -{d:.5}, {d:.5});";
-    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{
-        next_point,
-        ctxt.cur_point_name,
-        ctxt.cur_point_name,
-        data.height,
-        data.height,
-    }) catch unreachable;
-
-    ctxt.pushPointName(next_point);
-
-    return res;
-}
-
-fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
-    _ = iter;
-    _ = buffer;
-
-    ctxt.popPointName();
-    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }

@@ -16,7 +16,7 @@ const root_properties = [_]NodeProperty{};
 
 pub const RootType: NodeType = .{
     .name = "root",
-    .function_defenition = "",
+    .function_definition = "",
 
     .properties = root_properties[0..],
 

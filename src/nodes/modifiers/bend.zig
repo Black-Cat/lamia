@@ -1,14 +1,16 @@
 const util = @import("../node_utils.zig");
 
+const info = util.nsdf.Bend.info;
+
 pub const Bend: util.NodeType = .{
-    .name = util.nsdf.Bend.info.name,
-    .function_defenition = function_defenition,
+    .name = info.name,
+    .function_definition = info.function_definition,
 
     .properties = properties[0..],
 
     .init_data_fn = initData,
-    .enterCommandFn = enterCommand,
-    .exitCommandFn = exitCommand,
+    .enter_command_fn = info.enter_command_fn,
+    .exit_command_fn = info.exit_command_fn,
     .modifyGizmoPointsFn = modifyGizmoPoints,
 };
 
@@ -22,46 +24,12 @@ const properties = [_]util.NodeProperty{
     },
 };
 
-const function_defenition: []const u8 =
-    \\vec3 opBend(vec3 p, float k){
-    \\  float c = cos(k*p.x);
-    \\  float s = sin(k*p.x);
-    \\  mat2 m = mat2(c, -s, s, c);
-    \\  vec3 q = vec3(m * p.xy, p.z);
-    \\  return q;
-    \\}
-    \\
-;
-
 fn initData(buffer: *[]u8) void {
     const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
     data.power = 1.0;
 
     buffer.* = util.std.mem.asBytes(data);
-}
-
-fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, buffer: *[]u8) []const u8 {
-    _ = mat_offset;
-
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
-
-    const next_point: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, "p{d}", .{iter}) catch unreachable;
-
-    const format: []const u8 = "vec3 {s} = opBend({s}, {d:.5});";
-    const res: []const u8 = util.std.fmt.allocPrint(ctxt.allocator, format, .{ next_point, ctxt.cur_point_name, data.power }) catch unreachable;
-
-    ctxt.pushPointName(next_point);
-
-    return res;
-}
-
-fn exitCommand(ctxt: *util.IterationContext, iter: usize, buffer: *[]u8) []const u8 {
-    _ = iter;
-    _ = buffer;
-
-    ctxt.popPointName();
-    return util.std.fmt.allocPrint(ctxt.allocator, "", .{}) catch unreachable;
 }
 
 fn modifyGizmoPoints(buffer: *[]u8, points: []util.nm.vec4) void {

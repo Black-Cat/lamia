@@ -5,7 +5,7 @@ const FileWatcher = @import("../../scene/file_watcher.zig").FileWatcher;
 
 pub const FileSceneNode: util.NodeType = .{
     .name = "File Scene Node",
-    .function_defenition = "",
+    .function_definition = "",
 
     .properties = properties[0..],
 
