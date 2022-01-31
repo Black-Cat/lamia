@@ -36,21 +36,13 @@ const properties = [_]util.NodeProperty{
 fn initData(buffer: *[]u8) void {
     const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
-    data.rotation = util.nm.Vec3.zeros();
-    data.translation = util.nm.Vec3.zeros();
-    data.transform_matrix = util.nm.Mat4x4.identity();
-
     buffer.* = util.std.mem.asBytes(data);
+
+    util.nsdf.Transform.initZero(buffer);
 }
 
 fn editCallback(buffer: *[]u8) void {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
-
-    data.transform_matrix = util.nm.Mat4x4.identity();
-    util.nm.Transform.rotateX(&data.transform_matrix, -data.rotation[0]);
-    util.nm.Transform.rotateY(&data.transform_matrix, -data.rotation[1]);
-    util.nm.Transform.rotateZ(&data.transform_matrix, -data.rotation[2]);
-    util.nm.Transform.translate(&data.transform_matrix, -data.translation);
+    util.nsdf.Transform.updateMatrix(buffer);
 }
 
 fn modifyGizmoPoints(buffer: *[]u8, points: []util.nm.vec4) void {
