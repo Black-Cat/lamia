@@ -97,8 +97,9 @@ pub const Viewport = struct {
             &Global.main_scene.shader.?,
             @sizeOf(FragPushConstBlock),
             &self.frag_push_const_block,
-            .shader_read_only_optimal,
         );
+
+        self.render_pass.rg_pass.final_layout = .shader_read_only_optimal;
 
         Global.main_scene.rg_resource.registerOnChangeCallback(&self.render_pass.rg_pass, nyan.ScreenRenderPass.recreatePipelineOnShaderChange);
 

@@ -117,9 +117,10 @@ pub const Export2dPopup = struct {
             &shader,
             @sizeOf(FragPushConstBlock),
             self.viewport_push_block,
-            .transfer_src_optimal,
         );
         defer render_pass.deinit();
+
+        render_pass.rg_pass.final_layout = .transfer_src_optimal;
 
         render_pass.rg_pass.initFn(&render_pass.rg_pass);
         defer render_pass.rg_pass.deinitFn(&render_pass.rg_pass);
