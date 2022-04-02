@@ -12,13 +12,25 @@ const Global = @import("../global.zig");
 const FileWatcher = @import("file_watcher.zig").FileWatcher;
 
 pub fn scene2shader(scene: *Scene, settings: *SceneNode) vk.ShaderModule {
-    const code: []const u8 = scene2code(scene, settings);
+    const code: []const u8 = scene2code(scene, settings, nsdf.Templates.layout, nsdf.Templates.shader_main);
     //std.debug.print("{s}\n", .{code});
 
     // =c Crashes compiler in zig 0.8
     //const code_zero: [:0]const u8 = code[0..code_len :0];
     const code_zero: [:0]const u8 = nyan.app.allocator.dupeZ(u8, code) catch unreachable;
     const res: vk.ShaderModule = nyan.shader_util.loadShader(code_zero, .fragment);
+
+    nyan.app.allocator.free(code);
+    nyan.app.allocator.free(code_zero);
+
+    return res;
+}
+
+pub fn scene2computeShader(scene: *Scene, settings: *SceneNode, custom_layout: []const u8, main_fnc: []const u8) vk.ShaderModule {
+    const code: []const u8 = scene2code(scene, settings, custom_layout, main_fnc);
+
+    const code_zero: [:0]const u8 = nyan.app.allocator.dupeZ(u8, code) catch unreachable;
+    const res: vk.ShaderModule = nyan.shader_util.loadShader(code_zero, .compute);
 
     nyan.app.allocator.free(code);
     nyan.app.allocator.free(code_zero);
@@ -75,7 +87,7 @@ const Context = struct {
     }
 };
 
-fn scene2code(scene: *Scene, settings: *SceneNode) []const u8 {
+fn scene2code(scene: *Scene, settings: *SceneNode, layout: []const u8, main_fnc: []const u8) []const u8 {
     var context = Context.create(nyan.app.allocator);
     defer context.destroy();
 
@@ -110,7 +122,7 @@ fn scene2code(scene: *Scene, settings: *SceneNode) []const u8 {
     const code_pieces = [_][]const u8{
         "#version 450\n",
         settings_defines,
-        nsdf.Templates.layout,
+        layout,
         nsdf.Templates.shader_header,
         function_decls,
         nsdf.Templates.map_header,
@@ -124,7 +136,7 @@ fn scene2code(scene: *Scene, settings: *SceneNode) []const u8 {
         mat_map_commands,
         nsdf.Templates.mat_map_footer,
         nsdf.Templates.shader_normal_and_shadows,
-        nsdf.Templates.shader_main,
+        main_fnc,
     };
 
     return std.mem.concat(nyan.app.allocator, u8, code_pieces[0..]) catch unreachable;
