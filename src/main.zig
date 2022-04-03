@@ -34,10 +34,8 @@ pub fn main() !void {
     Global.main_scene.init();
     defer Global.main_scene.deinit();
 
-    if (nyan.app.args.get("")) |path| {
-        std.debug.print("{s}\n", .{path});
+    if (nyan.app.args.get("")) |path|
         Global.main_scene.load(path) catch nyan.printErrorNoPanic("Main", "Couldn't load path from args");
-    }
 
     try nyan.app.start();
 }
