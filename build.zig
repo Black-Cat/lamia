@@ -27,6 +27,10 @@ pub fn build(b: *Builder) void {
 
     const run_target = b.step("run", "Run lamia");
     const run = lamia.run();
+
+    if (b.args) |args|
+        run.addArgs(args);
+
     run.step.dependOn(b.getInstallStep());
     run_target.dependOn(&run.step);
 }
