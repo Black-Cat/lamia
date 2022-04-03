@@ -38,6 +38,16 @@ zig build run
 zig build -Dtarget=x86_64-windows-gnu run
 ```
 
+It is also possible to pass path to scene that will be opened on the application start
+
+```
+zig build run -- ../scene.ls
+
+or
+
+./zig-out/bin/lamia ../scene.ls
+```
+
 #### Feedback
 
 Create an issue here, or send email to iblackcatw(at)gmail.com or discord `Black Cat!#5337`
