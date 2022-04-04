@@ -10,13 +10,13 @@ pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
-    const vulkan_validation: ?bool = b.option(bool, "vulkan-validation", "Use vulkan validation layer, useful for vulkan development. Needs Vulkan SDK");
+    const vulkan_validation: bool = b.option(bool, "vulkan-validation", "Use vulkan validation layer, useful for vulkan development. Needs Vulkan SDK") orelse false;
 
     lamia.setTarget(target);
     lamia.setBuildMode(mode);
     lamia.linkSystemLibrary("c");
 
-    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation orelse false);
+    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation);
 
     lamia.linkLibrary(nyancoreLib);
     lamia.step.dependOn(&nyancoreLib.step);
