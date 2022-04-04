@@ -10,15 +10,13 @@ pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
+    const vulkan_validation: ?bool = b.option(bool, "vulkan-validation", "Use vulkan validation layer, useful for vulkan development. Needs Vulkan SDK");
+
     lamia.setTarget(target);
     lamia.setBuildMode(mode);
     lamia.linkSystemLibrary("c");
-    lamia.addPackage(.{
-        .name = "nyancore",
-        .path = .{ .path = "nyancore/src/main.zig" },
-    });
 
-    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", false);
+    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation orelse false);
 
     lamia.linkLibrary(nyancoreLib);
     lamia.step.dependOn(&nyancoreLib.step);
