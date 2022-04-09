@@ -37,6 +37,7 @@ pub fn drawAboutDialog() void {
         nc.igText("Awesome third party libraries used in this program:");
         awesomeThirdPartyLib("cimgui", "https://github.com/cimgui/cimgui");
         awesomeThirdPartyLib("dear imgui", "https://github.com/ocornut/imgui");
+        awesomeThirdPartyLib("enet", "http://enet.bespin.org");
         awesomeThirdPartyLib("glfw", "https://github.com/glfw/glfw");
         awesomeThirdPartyLib("glslang", "https://github.com/KronosGroup/glslang");
         awesomeThirdPartyLib("vulkan-zig", "https://github.com/Snektron/vulkan-zig");
