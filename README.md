@@ -29,6 +29,8 @@ zig build -Dtarget=x86_64-windows-gnu
 
 If you develop vulkan code, it is recomended to use `-Dvulkan-validation=true` flag. It requires installed vulkand sdk with correct environment variables. Enabling this option will turn on vulkan validation layers.
 
+You can enable tracing with `-Denable-tracing=true` and connect with tracy v0.8.
+
 ### Hot to run?
 
 #### Linux

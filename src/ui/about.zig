@@ -40,6 +40,7 @@ pub fn drawAboutDialog() void {
         awesomeThirdPartyLib("enet", "http://enet.bespin.org");
         awesomeThirdPartyLib("glfw", "https://github.com/glfw/glfw");
         awesomeThirdPartyLib("glslang", "https://github.com/KronosGroup/glslang");
+        awesomeThirdPartyLib("tracy", "https://github.com/wolfpld/tracy");
         awesomeThirdPartyLib("vulkan-zig", "https://github.com/Snektron/vulkan-zig");
 
         nc.igText("If you have an issue or suggestion please report it here");
