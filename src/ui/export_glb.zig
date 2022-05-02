@@ -265,28 +265,28 @@ fn reduce(vertex_buffer: *Buffer, vertex_inside_buffer: *Buffer, indices: []u32,
     }
 }
 
-fn writeToFile(file: *const std.fs.File, data: []const u8) std.os.WriteError!void {
+fn writeToFile(writer: anytype, data: []const u8) std.os.WriteError!void {
     if (native_endian == std.builtin.Endian.Little) {
-        try file.writeAll(data);
+        try writer.writeAll(data);
         return;
     }
 
     for (std.mem.bytesAsSlice([]u32, data)) |v|
-        try nyan.file_util.writeU32Little(file, v);
+        try writer.writeIntLittle(u32, v);
 }
 
-fn writeToFilePadded(file: *const std.fs.File, data: []const u8, padding: usize) std.os.WriteError!void {
-    try writeToFile(file, data[0 .. data.len - data.len % 4]);
+fn writeToFilePadded(writer: anytype, data: []const u8, padding: usize) std.os.WriteError!void {
+    try writeToFile(writer, data[0 .. data.len - data.len % 4]);
 
     if (padding == 0)
         return;
 
-    try file.writeAll(data[data.len .. data.len + 4 - padding]);
-    try file.writer().writeByteNTimes(0x20, padding);
+    try writer.writeAll(data[data.len .. data.len + 4 - padding]);
+    try writer.writeByteNTimes(0x20, padding);
 }
 
-fn writeToFilePadded2(file: *const std.fs.File, data0: []const u8, data1: []const u8, padding: usize) std.os.WriteError!void {
-    try writeToFile(file, data0[0 .. data0.len - data0.len % 4]);
+fn writeToFilePadded2(writer: anytype, data0: []const u8, data1: []const u8, padding: usize) std.os.WriteError!void {
+    try writeToFile(writer, data0[0 .. data0.len - data0.len % 4]);
 
     const tail: usize = data0.len % 4;
     var offset: usize = 0;
@@ -300,12 +300,12 @@ fn writeToFilePadded2(file: *const std.fs.File, data0: []const u8, data1: []cons
         while (i < 4) : (i += 1)
             temp_buf[i] = data1[i - tail];
 
-        try nyan.file_util.writeU32Little(file, temp);
+        try writer.writeIntLittle(u32, temp);
 
         offset = 4 - tail;
     }
 
-    try writeToFilePadded(file, data1[offset..data1.len], padding);
+    try writeToFilePadded(writer, data1[offset..data1.len], padding);
 }
 
 fn addNeighbour(neighbours: []u32, vertex: usize) void {
@@ -651,20 +651,21 @@ fn export2gltf(vertices: []Vertex, indices: []u32) std.os.WriteError!void {
         return;
     };
     defer file.close();
+    const writer = file.writer();
 
     // Header
     const gltf_header: [3]u32 = .{ 0x46546C67, 2, @sizeOf(u32) * 7 + json_chunk_length + json_chunk_padding + buffer_chunk_length + buffer_chunk_padding };
-    try writeToFile(&file, std.mem.sliceAsBytes(gltf_header[0..]));
+    try writeToFile(&writer, std.mem.sliceAsBytes(gltf_header[0..]));
 
     // Json Chunk
     const json_header: [2]u32 = .{ json_chunk_length + json_chunk_padding, json_chunk_type };
-    try writeToFile(&file, std.mem.sliceAsBytes(json_header[0..]));
-    try writeToFilePadded(&file, json_chunk_data, json_chunk_padding);
+    try writeToFile(&writer, std.mem.sliceAsBytes(json_header[0..]));
+    try writeToFilePadded(&writer, json_chunk_data, json_chunk_padding);
 
     // Buffer Chunk
     const buffer_header: [2]u32 = .{ buffer_chunk_length + buffer_chunk_padding, buffer_chunk_type };
-    try writeToFile(&file, std.mem.sliceAsBytes(buffer_header[0..]));
-    try writeToFilePadded2(&file, std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(vertices), buffer_chunk_padding);
+    try writeToFile(&writer, std.mem.sliceAsBytes(buffer_header[0..]));
+    try writeToFilePadded2(&writer, std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(vertices), buffer_chunk_padding);
 }
 
 fn exportToMesh() void {

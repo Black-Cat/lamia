@@ -14,6 +14,10 @@ fn root_init(buffer: *[]u8) void {
 
 const root_properties = [_]NodeProperty{};
 
+const EndOfStreamError = error{
+    EndOfStream,
+};
+
 pub const RootType: NodeType = .{
     .name = "root",
     .function_definition = "",
@@ -85,26 +89,26 @@ pub const Scene = struct {
         }
     }
 
-    fn recursiveSave(node: *SceneNode, file: *const std.fs.File) std.os.WriteError!void {
+    fn recursiveSave(node: *SceneNode, writer: anytype) std.os.WriteError!void {
         const name: []const u8 = std.mem.sliceTo(&node.name, 0);
 
-        try nyan.file_util.writeU32(file, name.len);
-        try file.writeAll(name);
+        try writer.writeIntBig(u32, @intCast(u32, name.len));
+        try writer.writeAll(name);
 
-        try nyan.file_util.writeU32(file, node.node_type.name.len);
-        try file.writeAll(node.node_type.name);
+        try writer.writeIntBig(u32, @intCast(u32, node.node_type.name.len));
+        try writer.writeAll(node.node_type.name);
 
-        try file.writeAll(node.buffer);
+        try writer.writeAll(node.buffer);
 
-        try nyan.file_util.writeU32(file, node.childrenCount());
+        try writer.writeIntBig(u32, @intCast(u32, node.childrenCount()));
         for (node.children.items) |child|
-            try recursiveSave(child, file);
+            try recursiveSave(child, writer);
     }
 
-    fn saveRoot(root: *SceneNode, file: *const std.fs.File) std.os.WriteError!void {
-        try nyan.file_util.writeU32(file, root.childrenCount());
+    fn saveRoot(root: *SceneNode, writer: anytype) std.os.WriteError!void {
+        try writer.writeIntBig(u32, @intCast(u32, root.childrenCount()));
         for (root.children.items) |child|
-            try recursiveSave(child, file);
+            try recursiveSave(child, writer);
     }
 
     pub fn save(self: *Scene, path: []const u8) !void {
@@ -112,9 +116,11 @@ pub const Scene = struct {
         const file: std.fs.File = try cwd.createFile(path, .{ .read = true, .truncate = true });
         defer file.close();
 
-        try saveRoot(&self.root, &file);
-        try saveRoot(&self.settings, &file);
-        try saveRoot(&self.materials, &file);
+        const writer = file.writer();
+
+        try saveRoot(&self.root, &writer);
+        try saveRoot(&self.settings, &writer);
+        try saveRoot(&self.materials, &writer);
     }
 
     pub fn saveNyanSdf(self: *Scene, path: []const u8) !void {
@@ -122,39 +128,41 @@ pub const Scene = struct {
         const file: std.fs.File = try cwd.createFile(path, .{ .read = true, .truncate = true });
         defer file.close();
 
-        try saveRoot(&self.materials, &file);
-        try saveRoot(&self.root, &file);
+        const writer = file.writer();
+
+        try saveRoot(&self.materials, &writer);
+        try saveRoot(&self.root, &writer);
     }
 
-    fn recursiveLoad(parent: *SceneNode, file: *const std.fs.File) std.os.ReadError!void {
+    fn recursiveLoad(parent: *SceneNode, reader: anytype) (std.os.ReadError || EndOfStreamError)!void {
         var node: *SceneNode = parent.add();
 
-        const name_len: usize = try nyan.file_util.readU32(file);
-        _ = try file.readAll(node.name[0..name_len]);
+        const name_len: usize = try reader.readIntBig(u32);
+        _ = try reader.readAll(node.name[0..name_len]);
         node.name[name_len] = 0;
 
-        const node_type_len: usize = try nyan.file_util.readU32(file);
+        const node_type_len: usize = try reader.readIntBig(u32);
         var node_type_name: []u8 = nyan.app.allocator.alloc(u8, node_type_len) catch unreachable;
         defer nyan.app.allocator.free(node_type_name);
-        _ = try file.readAll(node_type_name);
+        _ = try reader.readAll(node_type_name);
 
         const node_type: *const NodeType = node_collection.node_map.get(node_type_name).?;
         node.initWithoutName(node_type, parent);
 
-        _ = try file.readAll(node.buffer);
+        _ = try reader.readAll(node.buffer);
 
         if (node_type.has_on_load)
             node_type.on_load_fn(&node.buffer);
 
-        var children_count: usize = try nyan.file_util.readU32(file);
+        var children_count: usize = try reader.readIntBig(u32);
         while (children_count > 0) : (children_count -= 1)
-            try recursiveLoad(node, file);
+            try recursiveLoad(node, reader);
     }
 
-    fn loadRoot(parent: *SceneNode, file: *const std.fs.File) std.os.ReadError!void {
-        var root_level_nodes_count: usize = try nyan.file_util.readU32(file);
+    fn loadRoot(parent: *SceneNode, reader: anytype) (std.os.ReadError || EndOfStreamError)!void {
+        var root_level_nodes_count: usize = try reader.readIntBig(u32);
         while (root_level_nodes_count > 0) : (root_level_nodes_count -= 1)
-            try recursiveLoad(parent, file);
+            try recursiveLoad(parent, reader);
     }
 
     // Doesn't recompile scene shaders!!!
@@ -169,9 +177,11 @@ pub const Scene = struct {
 
         self.createRoots();
 
-        try loadRoot(&self.root, &file);
-        try loadRoot(&self.settings, &file);
-        try loadRoot(&self.materials, &file);
+        const reader = file.reader();
+
+        try loadRoot(&self.root, &reader);
+        try loadRoot(&self.settings, &reader);
+        try loadRoot(&self.materials, &reader);
 
         self.findSettings();
     }

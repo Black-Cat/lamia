@@ -120,6 +120,9 @@ pub const Export2dPopup = struct {
         );
         defer render_pass.deinit();
 
+        var framebuffer_index: u32 = 0;
+        render_pass.framebuffer_index = &framebuffer_index;
+
         render_pass.rg_pass.final_layout = .transfer_src_optimal;
 
         render_pass.rg_pass.initFn(&render_pass.rg_pass);
@@ -234,31 +237,14 @@ pub const Export2dPopup = struct {
             return;
         };
         defer file.close();
+        const writer = file.writer();
 
-        // BMP Header
-        file.writeAll("\x42\x4D") catch unreachable;
-        nyan.file_util.writeU32Little(&file, 122 + tex_size) catch unreachable;
-        file.writeAll("\x00\x00\x00\x00\x7A\x00\x00\x00") catch unreachable;
+        var image: nyan.Image = .{
+            .width = tex.width,
+            .height = tex.height,
+            .data = @ptrCast([*]u8, mapped_memory)[0..tex_size],
+        };
 
-        // DIB Header
-        file.writeAll("\x6C\x00\x00\x00") catch unreachable;
-        nyan.file_util.writeI32Little(&file, @intCast(i32, tex.width)) catch unreachable;
-        nyan.file_util.writeI32Little(&file, -@intCast(i32, tex.height)) catch unreachable;
-        file.writeAll("\x01\x00\x20\x00\x03\x00\x00\x00") catch unreachable;
-        nyan.file_util.writeU32Little(&file, tex_size) catch unreachable;
-        file.writeAll("\x13\x0B\x00\x00\x13\x0B\x00\x00") catch unreachable;
-        file.writeAll("\x00\x00\x00\x00\x00\x00\x00\x00") catch unreachable;
-        file.writeAll("\x00\x00\xFF\x00") catch unreachable;
-        file.writeAll("\x00\xFF\x00\x00") catch unreachable;
-        file.writeAll("\xFF\x00\x00\x00") catch unreachable;
-        file.writeAll("\x00\x00\x00\xFF") catch unreachable;
-        file.writeAll("\x20\x6E\x69\x57") catch unreachable;
-        file.writeAll("\x00" ** 36) catch unreachable;
-
-        // Pixel Array
-        var buf: []u8 = undefined;
-        buf.ptr = @ptrCast([*]u8, mapped_memory);
-        buf.len = tex_size;
-        file.writeAll(buf) catch unreachable;
+        nyan.bmp.write(writer, image) catch {};
     }
 };
