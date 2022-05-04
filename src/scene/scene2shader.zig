@@ -93,13 +93,7 @@ fn scene2code(scene: *Scene, settings: *SceneNode, layout: []const u8, main_fnc:
 
     iterateMaterials(&context, &scene.materials, "");
 
-    for (scene.root.children.items) |ch| {
-        if (ch.node_type.external) {
-            iterateExternNode(&context, ch);
-        } else {
-            iterateNode(&context, ch);
-        }
-    }
+    iterateNode(&context, &scene.root);
 
     const settings_defines: []const u8 = settingsDefines(&context, settings);
     defer nyan.app.allocator.free(settings_defines);

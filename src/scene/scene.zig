@@ -4,6 +4,7 @@ const Global = @import("../global.zig");
 
 const SceneNode = @import("scene_node.zig").SceneNode;
 const NodeType = @import("../nodes/node_type.zig").NodeType;
+const UnionNodeType = @import("../nodes/combinators/union.zig").Union;
 const NodeProperty = @import("../nodes/node_property.zig").NodeProperty;
 const node_collection = @import("../nodes/node_collection.zig");
 const scene2shader = @import("scene2shader.zig").scene2shader;
@@ -39,7 +40,7 @@ pub const Scene = struct {
     rg_resource: nyan.RGResource,
 
     fn createRoots(self: *Scene) void {
-        self.root.init(&RootType, "Root", null);
+        self.root.init(&UnionNodeType, "Root", null);
         self.settings.init(&RootType, "Settings", null);
         self.materials.init(&RootType, "Materials", null);
     }
