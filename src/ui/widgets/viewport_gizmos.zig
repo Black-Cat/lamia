@@ -202,7 +202,7 @@ fn interactChangeSize(interaction_info: *InteractionInfo) void {
     const mouse_pos: nm.vec3 = .{ io.MousePos.x, io.MousePos.y, 0.0 };
 
     var orig_vector: nm.vec3 = interaction_info.original_point3 - interaction_info.center3;
-    const orig_vector_norm: f32 = nm.Vec3.norm(orig_vector);
+    var orig_vector_norm: f32 = nm.Vec3.norm(orig_vector);
     orig_vector = nm.Vec3.normalize(orig_vector);
 
     const view_proj: nm.mat4x4 = nm.Mat4x4.mul(interaction_info.persp_mat, interaction_info.view_mat);
@@ -285,6 +285,12 @@ fn drawHandlePair(p: [*]nm.vec4, gizmo: *SizeGizmo, interaction_info: *Interacti
         interaction_info.value = gizmo.size;
         interaction_info.interactFn = interactChangeSize;
         interaction_info.direction = gizmo.dir;
+
+        if (interaction_info.original_value == 0.0) {
+            const eps: f32 = 0.01;
+            interaction_info.original_value = eps;
+            interaction_info.original_point3 = interaction_info.center3 + gizmo.dir * @splat(3, eps);
+        }
     }
 }
 

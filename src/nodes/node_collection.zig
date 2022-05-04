@@ -42,6 +42,7 @@ pub const special = [_]NodeType{
 };
 
 pub const surfaces = [_]NodeType{
+    @import("surfaces/bezier_curve.zig").BezierCurve,
     @import("surfaces/bounding_box.zig").BoundingBox,
     @import("surfaces/box.zig").Box,
     @import("surfaces/capped_cone.zig").CappedCone,
