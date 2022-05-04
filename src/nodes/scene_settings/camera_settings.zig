@@ -1,5 +1,9 @@
 const util = @import("../node_utils.zig");
 
+const Global = @import("../../global.zig");
+
+const NodeProperty = @import("../node_property.zig").NodeProperty;
+
 pub const CameraSettings: util.NodeType = .{
     .name = "Camera Settings",
     .function_definition = "",
@@ -9,13 +13,17 @@ pub const CameraSettings: util.NodeType = .{
     .init_data_fn = initData,
 
     .enter_command_fn = enterCommand,
+
+    .has_on_load = true,
+    .on_load_fn = updateGlobalCameras,
+};
+
+pub const ProjectionType = enum(u32) {
+    perspective,
+    orthographic,
 };
 
 pub const Data = struct {
-    const ProjectionType = enum(u32) {
-        perspective,
-        orthographic,
-    };
     const projection_names: [2][]const u8 = [_][]const u8{
         "Perspective",
         "Orthographic",
@@ -50,12 +58,31 @@ const properties = [_]util.NodeProperty{
         .name = "Max Steps",
     },
     .{
-        .drawFn = util.prop.drawEnumProperty,
+        .drawFn = drawProjectionProperty,
         .offset = @offsetOf(Data, "projection"),
         .name = "Projection",
         .enum_combo_names = Data.projection_names[0..],
     },
 };
+
+pub fn drawProjectionProperty(self: *const NodeProperty, data: *[]u8) bool {
+    const changed: bool = util.prop.drawEnumProperty(self, data);
+    if (changed) {
+        var data_ptr: [*c]u32 = @ptrCast([*c]u32, @alignCast(@alignOf(u32), &data.*[self.offset]));
+        const current_index: usize = data_ptr[0];
+        const projection: ProjectionType = @intToEnum(ProjectionType, current_index);
+        for (Global.cameras.items) |c|
+            c.setProjection(projection);
+    }
+    return changed;
+}
+
+pub fn updateGlobalCameras(buffer: *[]u8) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+
+    for (Global.cameras.items) |c|
+        c.setProjection(data.projection);
+}
 
 fn initData(buffer: *[]u8) void {
     const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;

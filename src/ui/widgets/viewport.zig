@@ -66,6 +66,7 @@ pub const Viewport = struct {
             .target = .{ 0.0, 0.0, 0.0 },
             .up = .{ 0.0, 1.0, 0.0 },
         };
+        Global.cameras.append(&self.camera) catch unreachable;
         self.camera_controller = .{ .camera = &self.camera };
         self.gizmo_storage = gizmos;
         self.gizmo_interaction = .{};
@@ -73,7 +74,10 @@ pub const Viewport = struct {
     }
 
     pub fn deinit(self: *Viewport) void {
-        _ = self;
+        for (Global.cameras.items) |c, i| {
+            if (c == *self.camera)
+                _ = Global.cameras.swapRemove(i);
+        }
     }
 
     fn windowInit(widget: *Widget) void {

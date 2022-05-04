@@ -25,7 +25,7 @@ pub const ArcballCameraController = struct {
         const io: *nc.ImGuiIO = nc.igGetIO();
 
         if (nc.igIsItemHovered(0))
-            zoom(self.camera, -io.MouseWheel);
+            self.camera.zoomFn(self.camera, -io.MouseWheel);
 
         if (nc.igIsItemClicked(mouse_button)) {
             nc.igGetMousePos(&self.last_mouse_pos);
@@ -78,7 +78,7 @@ pub const ArcballCameraController = struct {
             self.camera.position += offset;
             self.camera.target += offset;
         } else if (self.state == .zooming) {
-            zoom(self.camera, dir.y);
+            self.camera.zoomFn(self.camera, dir.y);
         } else if (self.state == .dolly_zooming) {
             var forward: nm.vec3 = self.camera.target - self.camera.position;
             forward = nm.Vec3.normalize(forward);
@@ -88,15 +88,5 @@ pub const ArcballCameraController = struct {
         }
 
         self.last_mouse_pos = cur_pos;
-    }
-
-    fn zoom(camera: *Camera, dir: f32) void {
-        var forward: nm.vec3 = camera.position - camera.target;
-
-        const dst: f32 = nm.Vec3.norm(forward);
-        const new_dst: f32 = dst + dir * @log(dst);
-
-        forward = nm.Vec3.normalize(forward);
-        camera.position = camera.target + forward * @splat(3, new_dst);
     }
 };

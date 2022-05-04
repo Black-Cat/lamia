@@ -26,6 +26,9 @@ pub fn main() !void {
     Global.file_watcher.init(allocator);
     defer Global.file_watcher.deinit();
 
+    Global.init_cameras(allocator);
+    defer Global.deinit_cameras();
+
     const systems: []*nyan.System = &[_]*nyan.System{
         &renderer.system,
         &ui.nyanui.system,
