@@ -143,11 +143,6 @@ pub const UI = struct {
                 nc.igEndMenu();
             }
 
-            if (nc.igBeginMenu("About", true)) {
-                open_about_popup = true;
-                nc.igEndMenu();
-            }
-
             if (nc.igBeginMenu("Export", true)) {
                 _ = nc.igMenuItem_BoolPtr("Export nyan sdf", "", &open_export_sdf_popup, true);
                 _ = nc.igMenuItem_BoolPtr("Export glb mesh", "", &open_export_glb_popup, true);
@@ -162,6 +157,11 @@ pub const UI = struct {
                         nyan.vkw.printVulkanError("Can't recreate swapchain after changing vsync", err, nyan.app.allocator);
                     };
                 }
+                nc.igEndMenu();
+            }
+
+            if (nc.igBeginMenu("Help", true)) {
+                _ = nc.igMenuItem_BoolPtr("About", "", &open_about_popup, true);
                 nc.igEndMenu();
             }
 
