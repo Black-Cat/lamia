@@ -17,11 +17,11 @@ const SceneTree = @import("widgets/scene_tree.zig").SceneTree;
 const ViewportSpace = @import("widgets/viewport_space.zig").ViewportSpace;
 
 pub const mainColors = [_]nc.ImVec4{
-    .{ .x = 0.251, .y = 0.471, .z = 0.435, .w = 1.0 }, // Viridian
-    .{ .x = 0.204, .y = 0.608, .z = 0.541, .w = 1.0 }, // ???
-    .{ .x = 0.369, .y = 0.718, .z = 0.600, .w = 1.0 }, // Polished Pine
-    .{ .x = 0.306, .y = 0.341, .z = 0.259, .w = 1.0 }, // Gray-Asparagus
-    .{ .x = 0.173, .y = 0.353, .z = 0.333, .w = 1.0 }, // Dark Slate Gray
+    .{ .x = 0.250, .y = 0.470, .z = 0.435, .w = 1.0 }, // Hookers Green
+    .{ .x = 0.403, .y = 0.807, .z = 0.741, .w = 0.5 }, // Keppel
+    .{ .x = 0.368, .y = 0.717, .z = 0.600, .w = 0.8 }, // Mint
+    .{ .x = 0.305, .y = 0.341, .z = 0.258, .w = 1.0 }, // Rifle Green
+    .{ .x = 0.172, .y = 0.352, .z = 0.333, .w = 1.0 }, // Dark Slate Gray
 };
 
 fn mainColorWithTransparency(ind: usize, transparency: f32) nc.ImVec4 {
@@ -192,27 +192,27 @@ pub const UI = struct {
 
     fn palette(col: nc.ImGuiCol_) nc.ImVec4 {
         return switch (col) {
-            nc.ImGuiCol_Text => .{ .x = 0.0, .y = 0.1, .z = 0.1, .w = 1.0 },
-            nc.ImGuiCol_TextDisabled => mainColors[1],
-            nc.ImGuiCol_WindowBg => mainColors[3],
-            nc.ImGuiCol_ChildBg => mainColors[3],
-            nc.ImGuiCol_PopupBg => mainColors[2],
-            nc.ImGuiCol_Border => mainColors[1],
+            nc.ImGuiCol_Text => .{ .x = 1.0, .y = 1.0, .z = 1.0, .w = 0.9 },
+            nc.ImGuiCol_TextDisabled => .{ .x = 1.0, .y = 1.0, .z = 1.0, .w = 0.6 },
+            nc.ImGuiCol_WindowBg => mainColors[4],
+            nc.ImGuiCol_ChildBg => mainColors[4],
+            nc.ImGuiCol_PopupBg => mainColors[4],
+            nc.ImGuiCol_Border => mainColors[0],
             nc.ImGuiCol_BorderShadow => mainColors[1],
-            nc.ImGuiCol_FrameBg => mainColors[4],
+            nc.ImGuiCol_FrameBg => mainColors[0],
             nc.ImGuiCol_FrameBgHovered => mainColors[1],
             nc.ImGuiCol_FrameBgActive => mainColors[2],
-            nc.ImGuiCol_TitleBg => mainColors[0],
-            nc.ImGuiCol_TitleBgActive => mainColors[1],
+            nc.ImGuiCol_TitleBg => mainColors[4],
+            nc.ImGuiCol_TitleBgActive => mainColors[4],
             nc.ImGuiCol_TitleBgCollapsed => mainColors[2],
-            nc.ImGuiCol_MenuBarBg => mainColors[4],
-            nc.ImGuiCol_ScrollbarBg => mainColors[2],
-            nc.ImGuiCol_ScrollbarGrab => mainColors[1],
+            nc.ImGuiCol_MenuBarBg => mainColors[3],
+            nc.ImGuiCol_ScrollbarBg => mainColors[4],
+            nc.ImGuiCol_ScrollbarGrab => mainColors[0],
             nc.ImGuiCol_ScrollbarGrabHovered => mainColors[1],
-            nc.ImGuiCol_ScrollbarGrabActive => mainColors[4],
-            nc.ImGuiCol_CheckMark => mainColors[0],
+            nc.ImGuiCol_ScrollbarGrabActive => mainColors[2],
+            nc.ImGuiCol_CheckMark => mainColors[2],
             nc.ImGuiCol_SliderGrab => mainColors[3],
-            nc.ImGuiCol_SliderGrabActive => mainColors[4],
+            nc.ImGuiCol_SliderGrabActive => mainColors[2],
             nc.ImGuiCol_Button => mainColors[0],
             nc.ImGuiCol_ButtonHovered => mainColors[1],
             nc.ImGuiCol_ButtonActive => mainColors[2],
@@ -220,31 +220,31 @@ pub const UI = struct {
             nc.ImGuiCol_HeaderHovered => mainColors[1],
             nc.ImGuiCol_HeaderActive => mainColors[2],
             nc.ImGuiCol_Separator => mainColors[0],
-            nc.ImGuiCol_SeparatorHovered => mainColors[1],
+            nc.ImGuiCol_SeparatorHovered => mainColorWithTransparency(1, 1.0),
             nc.ImGuiCol_SeparatorActive => mainColors[2],
             nc.ImGuiCol_ResizeGrip => mainColors[0],
             nc.ImGuiCol_ResizeGripHovered => mainColors[1],
             nc.ImGuiCol_ResizeGripActive => mainColors[2],
             nc.ImGuiCol_Tab => mainColors[0],
             nc.ImGuiCol_TabHovered => mainColors[1],
-            nc.ImGuiCol_TabActive => mainColors[2],
-            nc.ImGuiCol_TabUnfocused => mainColorWithTransparency(1, 0.8),
+            nc.ImGuiCol_TabActive => mainColorWithTransparency(2, 0.8),
+            nc.ImGuiCol_TabUnfocused => mainColors[0],
             nc.ImGuiCol_TabUnfocusedActive => mainColorWithTransparency(2, 0.8),
-            nc.ImGuiCol_PlotLines => mainColors[0],
-            nc.ImGuiCol_PlotLinesHovered => mainColors[1],
+            nc.ImGuiCol_PlotLines => mainColors[1],
+            nc.ImGuiCol_PlotLinesHovered => mainColors[2],
             nc.ImGuiCol_PlotHistogram => mainColors[1],
-            nc.ImGuiCol_PlotHistogramHovered => mainColors[0],
-            nc.ImGuiCol_TableHeaderBg => mainColors[4],
+            nc.ImGuiCol_PlotHistogramHovered => mainColors[2],
+            nc.ImGuiCol_TableHeaderBg => mainColors[0],
             nc.ImGuiCol_TableBorderStrong => mainColors[1],
-            nc.ImGuiCol_TableBorderLight => mainColors[4],
+            nc.ImGuiCol_TableBorderLight => mainColors[2],
             nc.ImGuiCol_TableRowBg => mainColors[0],
             nc.ImGuiCol_TableRowBgAlt => mainColors[4],
-            nc.ImGuiCol_TextSelectedBg => mainColors[1],
+            nc.ImGuiCol_TextSelectedBg => mainColors[3],
             nc.ImGuiCol_DragDropTarget => mainColors[2],
-            nc.ImGuiCol_NavHighlight => mainColors[3],
-            nc.ImGuiCol_NavWindowingHighlight => mainColors[3],
+            nc.ImGuiCol_NavHighlight => mainColors[2],
+            nc.ImGuiCol_NavWindowingHighlight => mainColors[2],
             nc.ImGuiCol_NavWindowingDimBg => mainColors[0],
-            nc.ImGuiCol_ModalWindowDimBg => mainColorWithTransparency(1, 0.5),
+            nc.ImGuiCol_ModalWindowDimBg => mainColorWithTransparency(3, 0.5),
             else => @panic("Unknown Style"),
         };
     }
