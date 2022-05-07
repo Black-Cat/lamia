@@ -29,6 +29,7 @@ pub const modifiers = [_]NodeType{
     @import("modifiers/symmetry.zig").Symmetry,
     @import("modifiers/transform.zig").Transform,
     @import("modifiers/twist.zig").Twist,
+    @import("modifiers/wrinkles.zig").Wrinkles,
 };
 
 pub const scene_settings = [_]NodeType{
