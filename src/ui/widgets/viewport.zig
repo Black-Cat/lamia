@@ -160,8 +160,8 @@ pub const Viewport = struct {
         nc.igGetItemRectMin(&toolbar_min);
         nc.igGetItemRectMax(&toolbar_max);
 
-        cur_height -= (@floatToInt(u32, toolbar_max.y) - @floatToInt(u32, toolbar_min.y));
-        cur_height -= 2 * @floatToInt(u32, nc.igGetStyle().*.ItemSpacing.y);
+        const toolbar_height: u32 = @floatToInt(u32, toolbar_max.y) - @floatToInt(u32, toolbar_min.y) + @floatToInt(u32, nc.igGetStyle().*.ItemSpacing.y);
+        cur_height -= toolbar_height;
 
         nc.igSameLine(0.0, -1.0);
         nc.igText("Camera:");
@@ -186,9 +186,10 @@ pub const Viewport = struct {
             nyan.global_render_graph.changeResourceBetweenFrames(&self.viewport_texture.rg_resource, createDescriptors);
         }
 
+        const size: nc.ImVec2 = .{ .x = max_pos.x - min_pos.x, .y = @intToFloat(f32, cur_height) };
         nc.igImage(
             @ptrCast(*anyopaque, &self.descriptor_sets[nyan.global_render_graph.frame_index]),
-            .{ .x = max_pos.x - min_pos.x, .y = @intToFloat(f32, cur_height) },
+            size,
             .{ .x = 0, .y = 0 },
             .{ .x = 1, .y = 1 },
             .{ .x = 1, .y = 1, .z = 1, .w = 1 },
@@ -197,7 +198,13 @@ pub const Viewport = struct {
 
         if (self.visible) {
             self.camera_controller.handleInput();
-            drawGizmos(self.gizmo_storage, &self.gizmo_interaction, &self.camera, min_pos, max_pos, window_pos);
+            drawGizmos(
+                self.gizmo_storage,
+                &self.gizmo_interaction,
+                &self.camera,
+                .{ .x = window_pos.x + min_pos.x, .y = window_pos.y + min_pos.y + @intToFloat(f32, toolbar_height) },
+                size,
+            );
             self.updatePushConstBlock();
         }
 

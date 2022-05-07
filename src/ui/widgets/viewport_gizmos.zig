@@ -166,7 +166,7 @@ fn transformPoints(gizmos: *GizmoStorage, camera: *Camera, interaction_info: *In
     var fov_y: f32 = camera_settings.fov;
     if (interaction_info.viewport[3] > interaction_info.viewport[2])
         fov_y /= aspect;
-    interaction_info.persp_mat = nm.Mat4x4.perspective(nm.rad(fov_y), aspect, camera_settings.near, camera_settings.far);
+    interaction_info.persp_mat = camera.projectionFn(camera, nm.rad(fov_y), aspect, camera_settings.near, camera_settings.far);
 
     const view_proj: nm.mat4x4 = nm.Mat4x4.mul(interaction_info.persp_mat, interaction_info.view_mat);
 
@@ -208,10 +208,9 @@ fn interactChangeSize(interaction_info: *InteractionInfo) void {
     const view_proj: nm.mat4x4 = nm.Mat4x4.mul(interaction_info.persp_mat, interaction_info.view_mat);
 
     const mouse_pos_world: nm.vec3 = nm.Mat4x4.unproject(mouse_pos, view_proj, interaction_info.viewport);
+    const world_ray: nm.ray = interaction_info.camera.projectionRayFn(interaction_info.camera, mouse_pos_world);
 
-    const camera_dir: nm.vec3 = nm.Vec3.normalize(mouse_pos_world - interaction_info.camera.position);
-
-    const intersection: f32 = solveLineLineIntersection(interaction_info.center3, orig_vector, interaction_info.camera.position, camera_dir);
+    const intersection: f32 = solveLineLineIntersection(interaction_info.center3, orig_vector, world_ray.pos, world_ray.dir);
     interaction_info.value.* = interaction_info.original_value * (@fabs(intersection) / orig_vector_norm);
 }
 
@@ -309,10 +308,9 @@ fn interactChangePos(interaction_info: *InteractionInfo) void {
     const view_proj: nm.mat4x4 = nm.Mat4x4.mul(interaction_info.persp_mat, interaction_info.view_mat);
 
     const mouse_pos_world: nm.vec3 = nm.Mat4x4.unproject(mouse_pos, view_proj, interaction_info.viewport);
+    const world_ray: nm.ray = interaction_info.camera.projectionRayFn(interaction_info.camera, mouse_pos_world);
 
-    const camera_dir: nm.vec3 = nm.Vec3.normalize(mouse_pos_world - interaction_info.camera.position);
-
-    const intersection: f32 = solveLineLineIntersection(interaction_info.value3.*, interaction_info.direction, interaction_info.camera.position, camera_dir);
+    const intersection: f32 = solveLineLineIntersection(interaction_info.value3.*, interaction_info.direction, world_ray.pos, world_ray.dir);
 
     const offset: nm.vec3 = interaction_info.direction * @splat(3, intersection - interaction_info.original_value);
     interaction_info.value3.* += offset;
@@ -411,17 +409,18 @@ fn drawTranslationGizmos(point_offset: *usize, gizmos: *GizmoStorage, interactio
     point_offset.* += gizmos.translation_gizmos.items.len * 4;
 }
 
-pub fn drawGizmos(gizmos: *GizmoStorage, interaction_info: *InteractionInfo, camera: *Camera, min_pos: nc.ImVec2, max_pos: nc.ImVec2, window_pos: nc.ImVec2) void {
+pub fn drawGizmos(gizmos: *GizmoStorage, interaction_info: *InteractionInfo, camera: *Camera, pos: nc.ImVec2, size: nc.ImVec2) void {
     if (gizmos.points_to_transform.items.len == 0)
         return;
 
     interaction_info.camera = camera;
 
     interaction_info.draw_list = nc.igGetWindowDrawList();
-    interaction_info.viewport[0] = window_pos.x + min_pos.x;
-    interaction_info.viewport[1] = window_pos.y + min_pos.y;
-    interaction_info.viewport[2] = max_pos.x - min_pos.x;
-    interaction_info.viewport[3] = max_pos.y - min_pos.y;
+    interaction_info.viewport[0] = pos.x;
+    interaction_info.viewport[1] = pos.y;
+    interaction_info.viewport[2] = size.x;
+    interaction_info.viewport[3] = size.y;
+    //nc.ImDrawList_AddRect(interaction_info.draw_list, pos, .{ .x = pos.x + size.x, .y = pos.y + size.y }, 0xFF0000FF, 0.0, nc.ImDrawFlags_None, 1.0);
 
     transformPoints(gizmos, camera, interaction_info);
 

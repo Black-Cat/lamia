@@ -9,6 +9,8 @@ pub const Camera = struct {
     up: nm.vec3, // Length is used as ortho camera scale
 
     zoomFn: fn (self: *Camera, dir: f32) void = zoomPerspective,
+    projectionFn: fn (self: *Camera, fov_y: f32, aspect: f32, near: f32, far: f32) nm.mat4x4 = projectionPerspective,
+    projectionRayFn: fn (self: *Camera, world_pos: nm.vec3) nm.ray = projectionRayPerspective,
 
     // Dir expected to be normalized
     pub fn viewAlong(self: *Camera, dir: nm.vec3, up: nm.vec3) void {
@@ -31,9 +33,13 @@ pub const Camera = struct {
     pub fn setProjection(self: *Camera, projection: ProjectionType) void {
         switch (projection) {
             .orthographic => {
+                self.projectionFn = projectionOrthographic;
+                self.projectionRayFn = projectionRayOrthographic;
                 self.zoomFn = zoomOrthographic;
             },
             .perspective => {
+                self.projectionFn = projectionPerspective;
+                self.projectionRayFn = projectionRayPerspective;
                 self.zoomFn = zoomPerspective;
                 self.up = nm.Vec3.normalize(self.up);
             },
@@ -52,5 +58,29 @@ pub const Camera = struct {
 
     pub fn zoomOrthographic(self: *Camera, dir: f32) void {
         self.up = nm.Vec3.normalize(self.up) * @splat(3, nm.Vec3.norm(self.up) + dir);
+    }
+
+    pub fn projectionPerspective(self: *Camera, fov_y: f32, aspect: f32, near: f32, far: f32) nm.mat4x4 {
+        _ = self;
+        return nm.Mat4x4.perspective(fov_y, aspect, near, far);
+    }
+
+    pub fn projectionOrthographic(self: *Camera, fov_y: f32, aspect: f32, near: f32, far: f32) nm.mat4x4 {
+        _ = fov_y;
+        return nm.Mat4x4.ortho(nm.Vec3.norm(self.up), aspect, near, far);
+    }
+
+    pub fn projectionRayPerspective(self: *Camera, world_pos: nm.vec3) nm.ray {
+        return .{
+            .pos = self.position,
+            .dir = nm.Vec3.normalize(world_pos - self.position),
+        };
+    }
+
+    pub fn projectionRayOrthographic(self: *Camera, world_pos: nm.vec3) nm.ray {
+        return .{
+            .pos = world_pos,
+            .dir = nm.Vec3.normalize(self.target - self.position),
+        };
     }
 };
