@@ -76,6 +76,7 @@ pub const Inspector = struct {
 
         if (nc.igButton("Delete", .{ .x = 0, .y = 0 })) {
             self.selected_scene_node.* = null;
+            self.gizmo_storage.clear();
 
             _ = node.parent.?.removeChild(node);
             node.deinit();
