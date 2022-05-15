@@ -244,7 +244,13 @@ fn iterateNode(ctxt: *Context, node: *SceneNode) void {
 
     const exit_command: []const u8 = node.node_type.exit_command_fn(&ctxt.iteration_context, ctxt.node_iter, &node.buffer);
     ctxt.node_commands.append(exit_command) catch unreachable;
-    ctxt.node_with_mat_commands.append(node.node_type.append_mat_check_fn(exit_command, &node.buffer, ctxt.cur_mat_offset, nyan.app.allocator)) catch unreachable;
+    ctxt.node_with_mat_commands.append(node.node_type.append_mat_check_fn(
+        &ctxt.iteration_context,
+        exit_command,
+        &node.buffer,
+        ctxt.cur_mat_offset,
+        nyan.app.allocator,
+    )) catch unreachable;
 
     ctxt.node_iter += 1;
 }
