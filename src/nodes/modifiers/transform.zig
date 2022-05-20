@@ -11,6 +11,9 @@ pub const Transform: util.NodeType = .{
     .init_data_fn = initData,
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
+    .sphere_bound_fn = info.sphere_bound_fn,
+
+    .min_child_count = 1,
 
     .has_edit_callback = true,
     .edit_callback = editCallback,

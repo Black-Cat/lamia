@@ -1,19 +1,22 @@
 const std = @import("std");
 const nyan = @import("nyancore");
 const nsdf = nyan.Sdf;
+const nm = nyan.Math;
 const vk = nyan.vk;
 
 const Scene = @import("scene.zig").Scene;
 const SceneNode = @import("scene_node.zig").SceneNode;
 const NodeType = @import("../nodes/node_type.zig").NodeType;
+
 const FileNodeData = @import("../nodes/special/file_scene_node.zig").Data;
+const sbn = @import("../nodes/special/sphere_bound.zig");
 
 const Global = @import("../global.zig");
 const FileWatcher = @import("file_watcher.zig").FileWatcher;
 
 pub fn scene2shader(scene: *Scene, settings: *SceneNode) vk.ShaderModule {
     const code: []const u8 = scene2code(scene, settings, nsdf.Templates.layout, nsdf.Templates.shader_main);
-    //std.debug.print("{s}\n", .{code});
+    std.debug.print("{s}\n", .{code});
 
     // =c Crashes compiler in zig 0.8
     //const code_zero: [:0]const u8 = code[0..code_len :0];
@@ -48,26 +51,39 @@ const Context = struct {
     used_material_types: NodeTypesArray,
     used_materials: NodeArray,
 
+    sphere_bounds: std.ArrayList(nm.sphereBound),
+    bounded: std.AutoArrayHashMap(*SceneNode, *nm.sphereBound),
+    sphere_bound_node: SceneNode,
+
     used_node_types: NodeTypesArray,
     node_iter: usize,
     cur_mat_offset: usize,
 
     node_commands: TextArray,
+    shadow_node_commands: TextArray,
     node_with_mat_commands: TextArray,
 
     iteration_context: nsdf.IterationContext,
 
     pub fn create(allocator: std.mem.Allocator) Context {
+        var sphere_bound_node: SceneNode = undefined;
+        sphere_bound_node.initWithoutName(&sbn.SphereBoundNode, null);
+
         return .{
             .file_to_material_offset = FileMatOffsetMap.init(allocator),
             .used_material_types = NodeTypesArray.init(allocator),
             .used_materials = NodeArray.init(allocator),
+
+            .sphere_bounds = std.ArrayList(nm.sphereBound).init(allocator),
+            .bounded = std.AutoArrayHashMap(*SceneNode, *nm.sphereBound).init(allocator),
+            .sphere_bound_node = sphere_bound_node,
 
             .used_node_types = NodeTypesArray.init(allocator),
             .node_iter = 0,
             .cur_mat_offset = 0,
 
             .node_commands = TextArray.init(allocator),
+            .shadow_node_commands = TextArray.init(allocator),
             .node_with_mat_commands = TextArray.init(allocator),
 
             .iteration_context = nsdf.IterationContext.create(allocator),
@@ -80,9 +96,14 @@ const Context = struct {
         self.used_material_types.deinit();
         self.used_materials.deinit();
 
+        self.sphere_bounds.deinit();
+        self.bounded.deinit();
+        self.sphere_bound_node.deinit();
+
         self.used_node_types.deinit();
 
         self.node_commands.deinit();
+        self.shadow_node_commands.deinit();
         self.node_with_mat_commands.deinit();
     }
 };
@@ -90,6 +111,11 @@ const Context = struct {
 fn scene2code(scene: *Scene, settings: *SceneNode, layout: []const u8, main_fnc: []const u8) []const u8 {
     var context = Context.create(nyan.app.allocator);
     defer context.destroy();
+
+    context.sphere_bounds.resize(1) catch unreachable;
+    computeSphereBounds(&context, &scene.root, &context.sphere_bounds.items[0], 0);
+    if (context.bounded.count() > 0)
+        context.used_node_types.append(context.sphere_bound_node.node_type) catch unreachable;
 
     iterateMaterials(&context, &scene.materials, "");
 
@@ -104,8 +130,14 @@ fn scene2code(scene: *Scene, settings: *SceneNode, layout: []const u8, main_fnc:
     const map_commands: []const u8 = mapCommands(&context, nyan.app.allocator);
     defer nyan.app.allocator.free(map_commands);
 
+    const shadow_map_commands: []const u8 = shadowMapCommands(&context, nyan.app.allocator);
+    defer nyan.app.allocator.free(shadow_map_commands);
+
     const map_return: []const u8 = std.fmt.allocPrint(nyan.app.allocator, "return d{d};\n", .{context.iteration_context.last_value_set_index}) catch unreachable;
     defer nyan.app.allocator.free(map_return);
+
+    const shadow_map_return: []const u8 = std.fmt.allocPrint(nyan.app.allocator, "return d{d};\n", .{context.iteration_context.last_value_set_index}) catch unreachable;
+    defer nyan.app.allocator.free(shadow_map_return);
 
     const mat_to_color_commands: []const u8 = matToColorCommands(&context, nyan.app.allocator);
     defer nyan.app.allocator.free(mat_to_color_commands);
@@ -123,6 +155,10 @@ fn scene2code(scene: *Scene, settings: *SceneNode, layout: []const u8, main_fnc:
         map_commands,
         if (context.iteration_context.any_value_set) map_return else "return 1e10;\n",
         nsdf.Templates.map_footer,
+        nsdf.Templates.shadow_map_header,
+        shadow_map_commands,
+        if (context.iteration_context.any_value_set) shadow_map_return else "return 1e10;\n",
+        nsdf.Templates.shadow_map_footer,
         nsdf.Templates.mat_to_color_header,
         mat_to_color_commands,
         nsdf.Templates.mat_to_color_footer,
@@ -175,6 +211,13 @@ fn mapCommands(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     return res;
 }
 
+fn shadowMapCommands(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
+    const res: []const u8 = std.mem.concat(allocator, u8, ctxt.shadow_node_commands.items) catch unreachable;
+    for (ctxt.shadow_node_commands.items) |c|
+        allocator.free(c);
+    return res;
+}
+
 fn matMapCommands(ctxt: *Context, allocator: std.mem.Allocator) []const u8 {
     const res: []const u8 = std.mem.concat(allocator, u8, ctxt.node_with_mat_commands.items) catch unreachable;
     for (ctxt.node_with_mat_commands.items) |c|
@@ -219,29 +262,53 @@ fn iterateMaterials(ctxt: *Context, materials: *SceneNode, file: []const u8) voi
     }
 }
 
-fn iterateNode(ctxt: *Context, node: *SceneNode) void {
-    var found: bool = for (ctxt.used_node_types.items) |used_type| {
-        if (used_type == node.node_type)
-            break true;
-    } else false;
+fn computeSphereBounds(ctxt: *Context, node: *SceneNode, sphere_bound: *nm.sphereBound, level: usize) void {
+    const bound_each_level: usize = 2;
+    const no_bound: nm.sphereBound = .{ .pos = nyan.Math.Vec3.zeros(), .r = 0.0 };
 
-    if (!found)
-        ctxt.used_node_types.append(node.node_type) catch unreachable;
+    const child_start: usize = ctxt.sphere_bounds.items.len;
+    ctxt.sphere_bounds.resize(child_start + node.children.items.len) catch unreachable;
+    const child_end: usize = ctxt.sphere_bounds.items.len;
 
-    const enter_command: []const u8 = node.node_type.enter_command_fn(&ctxt.iteration_context, ctxt.node_iter, ctxt.cur_mat_offset, &node.buffer);
-    ctxt.node_iter += 1;
-
-    ctxt.node_commands.append(enter_command) catch unreachable;
-    ctxt.node_with_mat_commands.append(nyan.app.allocator.dupe(u8, enter_command) catch unreachable) catch unreachable;
-
-    for (node.children.items) |ch| {
-        if (ch.node_type.external) {
-            iterateExternNode(ctxt, ch);
+    for (node.children.items) |c, i| {
+        if (c.node_type.external) {
+            const path: []const u8 = std.mem.sliceTo(&@ptrCast(*FileNodeData, &c.buffer).file_path, 0);
+            const fw: *FileWatcher = &Global.file_watcher;
+            const scene: *Scene = &fw.map.get(path).?.scene;
+            computeSphereBounds(ctxt, &scene.root, &ctxt.sphere_bounds.items[child_start + i], level + 1);
         } else {
-            iterateNode(ctxt, ch);
+            computeSphereBounds(ctxt, c, &ctxt.sphere_bounds.items[child_start + i], level + 1);
         }
     }
 
+    if (node.children.items.len < node.node_type.min_child_count) {
+        sphere_bound.* = no_bound;
+        return;
+    }
+
+    node.node_type.sphere_bound_fn(&node.buffer, sphere_bound, ctxt.sphere_bounds.items[child_start..child_end]);
+
+    if (level % bound_each_level == 0)
+        ctxt.bounded.put(node, sphere_bound) catch unreachable;
+}
+
+fn enterCommand(ctxt: *Context, node: *SceneNode, comptime add_to_shadow: bool) void {
+    const enter_command: []const u8 = node.node_type.enter_command_fn(
+        &ctxt.iteration_context,
+        ctxt.node_iter,
+        ctxt.cur_mat_offset,
+        &node.buffer,
+    );
+    ctxt.node_commands.append(enter_command) catch unreachable;
+    ctxt.node_with_mat_commands.append(nyan.app.allocator.dupe(u8, enter_command) catch unreachable) catch unreachable;
+
+    if (add_to_shadow)
+        ctxt.shadow_node_commands.append(nyan.app.allocator.dupe(u8, enter_command) catch unreachable) catch unreachable;
+
+    ctxt.node_iter += 1;
+}
+
+fn exitCommand(ctxt: *Context, node: *SceneNode) void {
     const exit_command: []const u8 = node.node_type.exit_command_fn(&ctxt.iteration_context, ctxt.node_iter, &node.buffer);
     ctxt.node_commands.append(exit_command) catch unreachable;
     ctxt.node_with_mat_commands.append(node.node_type.append_mat_check_fn(
@@ -252,7 +319,51 @@ fn iterateNode(ctxt: *Context, node: *SceneNode) void {
         nyan.app.allocator,
     )) catch unreachable;
 
+    ctxt.shadow_node_commands.append(nyan.app.allocator.dupe(u8, exit_command) catch unreachable) catch unreachable;
+
     ctxt.node_iter += 1;
+}
+
+fn iterateNode(ctxt: *Context, node: *SceneNode) void {
+    var found: bool = for (ctxt.used_node_types.items) |used_type| {
+        if (used_type == node.node_type)
+            break true;
+    } else false;
+
+    if (!found)
+        ctxt.used_node_types.append(node.node_type) catch unreachable;
+
+    const bounded: bool = ctxt.bounded.contains(node) and ctxt.bounded.get(node).?.*.r != std.math.inf(f32);
+    if (bounded) {
+        const data: *sbn.Data = @ptrCast(*sbn.Data, @alignCast(@alignOf(sbn.Data), ctxt.sphere_bound_node.buffer.ptr));
+        data.bound = ctxt.bounded.get(node).?.*;
+        const enter_command: []const u8 = nsdf.SphereBoundNode.shadowEnterCommand(
+            &ctxt.iteration_context,
+            ctxt.node_iter,
+            ctxt.cur_mat_offset,
+            &ctxt.sphere_bound_node.buffer,
+        );
+        ctxt.shadow_node_commands.append(enter_command) catch unreachable;
+        enterCommand(ctxt, &ctxt.sphere_bound_node, false);
+    }
+
+    enterCommand(ctxt, node, true);
+
+    for (node.children.items) |ch| {
+        if (ch.node_type.external) {
+            iterateExternNode(ctxt, ch);
+        } else {
+            iterateNode(ctxt, ch);
+        }
+    }
+
+    exitCommand(ctxt, node);
+
+    if (bounded) {
+        const data: *sbn.Data = @ptrCast(*sbn.Data, @alignCast(@alignOf(sbn.Data), ctxt.sphere_bound_node.buffer.ptr));
+        data.bound = ctxt.bounded.get(node).?.*;
+        exitCommand(ctxt, &ctxt.sphere_bound_node);
+    }
 }
 
 fn iterateExternNode(ctxt: *Context, node: *SceneNode) void {

@@ -12,8 +12,10 @@ pub const Intersection: util.NodeType = .{
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .append_mat_check_fn = info.append_mat_check_fn,
+    .sphere_bound_fn = info.sphere_bound_fn,
 
-    .maxChildCount = util.std.math.maxInt(usize),
+    .min_child_count = 2,
+    .max_child_count = util.std.math.maxInt(usize),
 };
 
 const Data = util.nsdf.Intersection.Data;

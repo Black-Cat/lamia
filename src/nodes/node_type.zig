@@ -37,10 +37,12 @@ pub const NodeType = struct {
     enter_command_fn: nsdf.EnterCommandFn = undefined,
     exit_command_fn: nsdf.ExitCommandFn = undefined,
     append_mat_check_fn: nsdf.AppendMatCheckFn = nsdf.appendNoMatCheck,
+    sphere_bound_fn: nsdf.SphereBoundFn = undefined,
 
     appendGizmosFn: fn (buffer: *[]u8, gizmo_storage: *GizmoStorage) void = appendNoGizmos,
 
     modifyGizmoPointsFn: fn (buffer: *[]u8, points: []nm.vec4) void = dontModifyGizmos,
 
-    maxChildCount: usize = 1,
+    min_child_count: usize = 0,
+    max_child_count: usize = 1,
 };

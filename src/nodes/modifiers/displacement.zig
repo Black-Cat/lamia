@@ -11,6 +11,9 @@ pub const Displacement: util.NodeType = .{
     .init_data_fn = initData,
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
+    .sphere_bound_fn = info.sphere_bound_fn,
+
+    .min_child_count = 1,
 };
 
 const Data = util.nsdf.Displacement.Data;

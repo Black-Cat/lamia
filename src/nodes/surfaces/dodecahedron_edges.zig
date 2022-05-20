@@ -12,6 +12,7 @@ pub const DodecahedronEdges: util.NodeType = .{
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .append_mat_check_fn = info.append_mat_check_fn,
+    .sphere_bound_fn = info.sphere_bound_fn,
     .appendGizmosFn = appendGizmos,
 };
 

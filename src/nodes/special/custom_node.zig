@@ -11,6 +11,7 @@ pub const CustomNode: util.NodeType = .{
     .init_data_fn = initData,
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
+    .sphere_bound_fn = info.sphere_bound_fn,
 };
 
 const Data = util.nsdf.CustomNode.Data;

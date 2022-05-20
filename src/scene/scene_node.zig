@@ -1,5 +1,6 @@
-const nyan = @import("nyancore");
 const std = @import("std");
+const nyan = @import("nyancore");
+
 const NodeType = @import("../nodes/node_type.zig").NodeType;
 
 pub const SceneNode = struct {

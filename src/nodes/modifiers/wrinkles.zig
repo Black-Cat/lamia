@@ -11,8 +11,10 @@ pub const Wrinkles: util.NodeType = .{
     .init_data_fn = initData,
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
+    .sphere_bound_fn = info.sphere_bound_fn,
 
-    .maxChildCount = 2,
+    .min_child_count = 1,
+    .max_child_count = 2,
 };
 
 const Data = util.nsdf.Wrinkles.Data;

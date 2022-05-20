@@ -12,6 +12,7 @@ pub const RoundedCylinder: util.NodeType = .{
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .append_mat_check_fn = info.append_mat_check_fn,
+    .sphere_bound_fn = info.sphere_bound_fn,
     .appendGizmosFn = appendGizmos,
 };
 
@@ -20,8 +21,8 @@ const Data = util.nsdf.RoundedCylinder.Data;
 const properties = [_]util.NodeProperty{
     .{
         .drawFn = util.prop.drawFloatProperty,
-        .offset = @offsetOf(Data, "diameter"),
-        .name = "Diameter",
+        .offset = @offsetOf(Data, "radius"),
+        .name = "Radius",
     },
     .{
         .drawFn = util.prop.drawFloatProperty,
@@ -43,7 +44,7 @@ const properties = [_]util.NodeProperty{
 fn initData(buffer: *[]u8) void {
     const data: *Data = util.nyan.app.allocator.create(Data) catch unreachable;
 
-    data.diameter = 1.0;
+    data.radius = 1.0;
     data.rounding_radius = 0.1;
     data.height = 0.5;
     data.mat = 0;
@@ -55,7 +56,7 @@ fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
     var gizmo: util.SizeGizmo = .{
-        .size = &data.diameter,
+        .size = &data.radius,
         .offset_type = .direction,
         .direction_type = .static,
         .offset_dist = null,

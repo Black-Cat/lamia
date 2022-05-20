@@ -208,7 +208,7 @@ pub const SceneTree = struct {
                     self.drawSceneLeaf(child);
                 }
 
-                if (node.children.items.len - i > node.node_type.maxChildCount) {
+                if (node.children.items.len - i > node.node_type.max_child_count) {
                     nc.igSameLine(0.0, -1.0);
                     drawWarning();
                 }
@@ -227,7 +227,7 @@ pub const SceneTree = struct {
                 self.drawSceneLeaf(child);
             }
 
-            if (node.children.items.len - i > node.node_type.maxChildCount) {
+            if (node.children.items.len - i > node.node_type.max_child_count) {
                 nc.igSameLine(0.0, -1.0);
                 drawWarning();
             }
