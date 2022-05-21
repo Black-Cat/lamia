@@ -44,6 +44,7 @@ pub const GizmoStorage = struct {
 
     scene_node: ?*SceneNode,
     points_to_transform: std.ArrayList(nm.vec4),
+    viewport_points: std.ArrayList(nm.vec4),
 
     pub fn init(self: *GizmoStorage, allocator: Allocator) void {
         self.size_gizmos = std.ArrayList(SizeGizmo).init(allocator);
@@ -52,6 +53,7 @@ pub const GizmoStorage = struct {
 
         self.scene_node = null;
         self.points_to_transform = std.ArrayList(nm.vec4).init(allocator);
+        self.viewport_points = std.ArrayList(nm.vec4).init(allocator);
     }
 
     pub fn deinit(self: *GizmoStorage) void {
@@ -59,6 +61,7 @@ pub const GizmoStorage = struct {
         self.translation_gizmos.deinit();
         self.rotation_gizmos.deinit();
         self.points_to_transform.deinit();
+        self.viewport_points.deinit();
     }
 
     pub fn clear(self: *GizmoStorage) void {
@@ -66,6 +69,7 @@ pub const GizmoStorage = struct {
         self.translation_gizmos.clearRetainingCapacity();
         self.rotation_gizmos.clearRetainingCapacity();
         self.points_to_transform.clearRetainingCapacity();
+        self.viewport_points.clearRetainingCapacity();
     }
 
     pub fn fillFromNode(self: *GizmoStorage, node: ?*SceneNode) void {
@@ -77,6 +81,7 @@ pub const GizmoStorage = struct {
 
         self.scene_node.?.node_type.appendGizmosFn(&self.scene_node.?.buffer, self);
         self.points_to_transform.resize(3 * self.size_gizmos.items.len + 4 * self.translation_gizmos.items.len) catch unreachable;
+        self.viewport_points.resize(self.points_to_transform.items.len) catch unreachable;
     }
 };
 
@@ -114,9 +119,9 @@ fn transformPoints(gizmos: *GizmoStorage, camera: *Camera, interaction_info: *In
         gizmos.points_to_transform.items[center_index] = .{ 0.0, 0.0, 0.0, 1.0 };
 
         if (sg.offset_type == .direction and sg.offset_dist != null) {
-            gizmos.points_to_transform.items[center_index] = nm.Vec4.fromVec3(sg.offset_dir * @splat(3, sg.offset_dist.?.*), 0.0);
+            gizmos.points_to_transform.items[center_index] = nm.Vec4.fromVec3(sg.offset_dir * @splat(3, sg.offset_dist.?.*), 1.0);
         } else if (sg.offset_type == .position and sg.offset_pos != null) {
-            gizmos.points_to_transform.items[center_index] = nm.Vec4.fromVec3(sg.offset_pos.?.*, 0.0);
+            gizmos.points_to_transform.items[center_index] = nm.Vec4.fromVec3(sg.offset_pos.?.*, 1.0);
         }
         points_count += 1;
 
@@ -154,7 +159,7 @@ fn transformPoints(gizmos: *GizmoStorage, camera: *Camera, interaction_info: *In
     }
 
     // Apply node transformations
-    var cur_node: *SceneNode = gizmos.scene_node.?;
+    var cur_node: *SceneNode = gizmos.scene_node.?.parent.?;
     while (cur_node.parent != null) {
         cur_node.node_type.modifyGizmoPointsFn(&cur_node.buffer, gizmos.points_to_transform.items);
         cur_node = cur_node.parent.?;
@@ -172,8 +177,8 @@ fn transformPoints(gizmos: *GizmoStorage, camera: *Camera, interaction_info: *In
 
     const view_proj: nm.mat4x4 = nm.Mat4x4.mul(interaction_info.persp_mat, interaction_info.view_mat);
 
-    for (gizmos.points_to_transform.items) |*p| {
-        p.* = nm.Mat4x4.mulv(view_proj, p.*);
+    for (gizmos.viewport_points.items) |*p, ind| {
+        p.* = nm.Mat4x4.mulv(view_proj, gizmos.points_to_transform.items[ind]);
         if (p.*[3] != 0.0)
             p.* *= nm.vec4{ 1.0 / p.*[3], 1.0 / p.*[3], 1.0 / p.*[3], 1.0 };
         p.*[1] *= -1.0;
@@ -216,7 +221,7 @@ fn interactChangeSize(interaction_info: *InteractionInfo) void {
     interaction_info.value.* = interaction_info.original_value * (@fabs(intersection) / orig_vector_norm);
 }
 
-fn drawHandlePair(p: [*]nm.vec4, gizmo: *SizeGizmo, interaction_info: *InteractionInfo) void {
+fn drawHandlePair(p: [*]nm.vec4, wp: [*]nm.vec4, gizmo: *SizeGizmo, interaction_info: *InteractionInfo) void {
     const handle_hover_radius: f32 = 8.0;
 
     const centers: [3]nc.ImVec2 = .{
@@ -274,13 +279,7 @@ fn drawHandlePair(p: [*]nm.vec4, gizmo: *SizeGizmo, interaction_info: *Interacti
         interaction_info.center[1] = centers[2].y;
         interaction_info.original_point[0] = centers[hovered_ind].x;
         interaction_info.original_point[1] = centers[hovered_ind].y;
-        if (gizmo.offset_type == .direction and gizmo.offset_dist != null) {
-            interaction_info.center3 = gizmo.offset_dir * @splat(3, gizmo.offset_dist.?.*);
-        } else if (gizmo.offset_type == .position and gizmo.offset_pos != null) {
-            interaction_info.center3 = gizmo.offset_pos.?.*;
-        } else {
-            interaction_info.center3 = nm.vec3{ 0.0, 0.0, 0.0 };
-        }
+        interaction_info.center3 = .{ wp[0][0], wp[0][1], wp[0][2] };
         interaction_info.original_point3 = interaction_info.center3 + gizmo.dir * @splat(3, gizmo.size.*);
         interaction_info.original_value = gizmo.size.*;
         interaction_info.value = gizmo.size;
@@ -298,7 +297,12 @@ fn drawHandlePair(p: [*]nm.vec4, gizmo: *SizeGizmo, interaction_info: *Interacti
 fn drawSizeGizmos(point_offset: *usize, gizmos: *GizmoStorage, interaction_info: *InteractionInfo) void {
     for (gizmos.size_gizmos.items) |*sg, ind| {
         const i: usize = point_offset.* + 3 * ind;
-        drawHandlePair(@ptrCast([*]nm.vec4, &gizmos.points_to_transform.items[i]), sg, interaction_info);
+        drawHandlePair(
+            @ptrCast([*]nm.vec4, &gizmos.viewport_points.items[i]),
+            @ptrCast([*]nm.vec4, &gizmos.points_to_transform.items[i]),
+            sg,
+            interaction_info,
+        );
     }
     point_offset.* += gizmos.size_gizmos.items.len * 3;
 }
@@ -312,7 +316,7 @@ fn interactChangePos(interaction_info: *InteractionInfo) void {
     const mouse_pos_world: nm.vec3 = nm.Mat4x4.unproject(mouse_pos, view_proj, interaction_info.viewport);
     const world_ray: nm.ray = interaction_info.camera.projectionRayFn(interaction_info.camera, mouse_pos_world);
 
-    const intersection: f32 = solveLineLineIntersection(interaction_info.value3.*, interaction_info.direction, world_ray.pos, world_ray.dir);
+    const intersection: f32 = solveLineLineIntersection(interaction_info.value3.* + interaction_info.center3, interaction_info.direction, world_ray.pos, world_ray.dir);
 
     const offset: nm.vec3 = interaction_info.direction * @splat(3, intersection - interaction_info.original_value);
     interaction_info.value3.* += offset;
@@ -321,7 +325,7 @@ fn interactChangePos(interaction_info: *InteractionInfo) void {
         ic(interaction_info.value3);
 }
 
-fn drawTranslationAxis(p: [*]nm.vec4, gizmo: *TranslationGizmo, interaction_info: *InteractionInfo) void {
+fn drawTranslationAxis(p: [*]nm.vec4, wp: [*]nm.vec4, gizmo: *TranslationGizmo, interaction_info: *InteractionInfo) void {
     const centers: [4]nm.vec2 = .{
         .{
             interaction_info.viewport[0] + interaction_info.viewport[2] * p[1][0],
@@ -393,13 +397,13 @@ fn drawTranslationAxis(p: [*]nm.vec4, gizmo: *TranslationGizmo, interaction_info
         interaction_info.center = centers[3];
         interaction_info.original_point = centers[hovered_ind];
 
-        interaction_info.center3 = gizmo.pos.*;
+        interaction_info.center3 = nm.vec3{ wp[0][0], wp[0][1], wp[0][2] } - gizmo.pos.*;
         interaction_info.direction[0] = @intToFloat(f32, @boolToInt(hovered_ind == 0));
         interaction_info.direction[1] = @intToFloat(f32, @boolToInt(hovered_ind == 1));
         interaction_info.direction[2] = @intToFloat(f32, @boolToInt(hovered_ind == 2));
         interaction_info.original_point3 = interaction_info.center3 + interaction_info.direction;
 
-        interaction_info.original_value3 = interaction_info.center3;
+        interaction_info.original_value3 = gizmo.pos.*;
         interaction_info.value3 = gizmo.pos;
         interaction_info.original_value = dist_proj[hovered_ind];
         interaction_info.interactFn = interactChangePos;
@@ -410,7 +414,12 @@ fn drawTranslationAxis(p: [*]nm.vec4, gizmo: *TranslationGizmo, interaction_info
 fn drawTranslationGizmos(point_offset: *usize, gizmos: *GizmoStorage, interaction_info: *InteractionInfo) void {
     for (gizmos.translation_gizmos.items) |*tg, ind| {
         const i: usize = point_offset.* + 4 * ind;
-        drawTranslationAxis(@ptrCast([*]nm.vec4, &gizmos.points_to_transform.items[i]), tg, interaction_info);
+        drawTranslationAxis(
+            @ptrCast([*]nm.vec4, &gizmos.viewport_points.items[i]),
+            @ptrCast([*]nm.vec4, &gizmos.points_to_transform.items[i]),
+            tg,
+            interaction_info,
+        );
     }
     point_offset.* += gizmos.translation_gizmos.items.len * 4;
 }
