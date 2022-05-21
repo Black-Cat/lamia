@@ -54,6 +54,7 @@ const Context = struct {
     sphere_bounds: std.ArrayList(nm.sphereBound),
     bounded: std.AutoArrayHashMap(*SceneNode, *nm.sphereBound),
     sphere_bound_node: SceneNode,
+    sphere_bound_index: usize,
 
     used_node_types: NodeTypesArray,
     node_iter: usize,
@@ -77,6 +78,7 @@ const Context = struct {
             .sphere_bounds = std.ArrayList(nm.sphereBound).init(allocator),
             .bounded = std.AutoArrayHashMap(*SceneNode, *nm.sphereBound).init(allocator),
             .sphere_bound_node = sphere_bound_node,
+            .sphere_bound_index = 0,
 
             .used_node_types = NodeTypesArray.init(allocator),
             .node_iter = 0,
@@ -113,6 +115,7 @@ fn scene2code(scene: *Scene, settings: *SceneNode, layout: []const u8, main_fnc:
     defer context.destroy();
 
     context.sphere_bounds.resize(1) catch unreachable;
+    allocateSphereBounds(&context, &scene.root);
     computeSphereBounds(&context, &scene.root, &context.sphere_bounds.items[0], 0);
     if (context.bounded.count() > 0)
         context.used_node_types.append(context.sphere_bound_node.node_type) catch unreachable;
@@ -262,13 +265,19 @@ fn iterateMaterials(ctxt: *Context, materials: *SceneNode, file: []const u8) voi
     }
 }
 
+fn allocateSphereBounds(ctxt: *Context, node: *SceneNode) void {
+    ctxt.sphere_bounds.resize(ctxt.sphere_bounds.items.len + node.children.items.len) catch unreachable;
+    for (node.children.items) |c|
+        allocateSphereBounds(ctxt, c);
+}
+
 fn computeSphereBounds(ctxt: *Context, node: *SceneNode, sphere_bound: *nm.sphereBound, level: usize) void {
     const bound_each_level: usize = 2;
     const no_bound: nm.sphereBound = .{ .pos = nyan.Math.Vec3.zeros(), .r = 0.0 };
 
-    const child_start: usize = ctxt.sphere_bounds.items.len;
-    ctxt.sphere_bounds.resize(child_start + node.children.items.len) catch unreachable;
-    const child_end: usize = ctxt.sphere_bounds.items.len;
+    const child_start: usize = ctxt.sphere_bound_index;
+    const child_end: usize = child_start + node.children.items.len;
+    ctxt.sphere_bound_index = child_end;
 
     for (node.children.items) |c, i| {
         if (c.node_type.external) {
