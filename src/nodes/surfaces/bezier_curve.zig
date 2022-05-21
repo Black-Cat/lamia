@@ -67,9 +67,9 @@ fn initData(buffer: *[]u8) void {
 fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
-    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_a }) catch unreachable;
-    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_b }) catch unreachable;
-    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_c }) catch unreachable;
+    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_a, .editCallback = null }) catch unreachable;
+    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_b, .editCallback = null }) catch unreachable;
+    gizmos_storage.translation_gizmos.append(.{ .pos = &data.point_c, .editCallback = null }) catch unreachable;
 
     gizmos_storage.size_gizmos.append(.{
         .size = &data.width_start,

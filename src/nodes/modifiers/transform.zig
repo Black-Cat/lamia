@@ -18,6 +18,7 @@ pub const Transform: util.NodeType = .{
     .has_edit_callback = true,
     .edit_callback = editCallback,
 
+    .appendGizmosFn = appendGizmos,
     .modifyGizmoPointsFn = modifyGizmoPoints,
 };
 
@@ -48,6 +49,11 @@ fn editCallback(buffer: *[]u8) void {
     util.nsdf.Transform.updateMatrix(buffer);
 }
 
+fn gizmoEditCallback(pos: *util.nm.vec3) void {
+    var data: *Data = @fieldParentPtr(Data, "translation", pos);
+    editCallback(@ptrCast(*[]u8, &data));
+}
+
 fn modifyGizmoPoints(buffer: *[]u8, points: []util.nm.vec4) void {
     const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
 
@@ -55,4 +61,10 @@ fn modifyGizmoPoints(buffer: *[]u8, points: []util.nm.vec4) void {
 
     for (points) |*p|
         p.* = util.nm.Mat4x4.mulv(inv, p.*);
+}
+
+fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
+    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+
+    gizmos_storage.translation_gizmos.append(.{ .pos = &data.translation, .editCallback = gizmoEditCallback }) catch unreachable;
 }

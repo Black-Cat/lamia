@@ -27,6 +27,7 @@ pub const SizeGizmo = struct {
 
 pub const TranslationGizmo = struct {
     pos: *nm.vec3,
+    editCallback: ?fn (pos: *nm.vec3) void,
 };
 
 pub const RotationGizmo = struct {
@@ -101,6 +102,7 @@ pub const InteractionInfo = struct {
     value3: *nm.vec3 = undefined,
 
     interactFn: ?fn (interaction_info: *InteractionInfo) void = null,
+    interactCallback: ?fn (val: *nm.vec3) void = null,
 };
 
 fn transformPoints(gizmos: *GizmoStorage, camera: *Camera, interaction_info: *InteractionInfo) void {
@@ -314,6 +316,9 @@ fn interactChangePos(interaction_info: *InteractionInfo) void {
 
     const offset: nm.vec3 = interaction_info.direction * @splat(3, intersection - interaction_info.original_value);
     interaction_info.value3.* += offset;
+
+    if (interaction_info.interactCallback) |ic|
+        ic(interaction_info.value3);
 }
 
 fn drawTranslationAxis(p: [*]nm.vec4, gizmo: *TranslationGizmo, interaction_info: *InteractionInfo) void {
@@ -398,6 +403,7 @@ fn drawTranslationAxis(p: [*]nm.vec4, gizmo: *TranslationGizmo, interaction_info
         interaction_info.value3 = gizmo.pos;
         interaction_info.original_value = dist_proj[hovered_ind];
         interaction_info.interactFn = interactChangePos;
+        interaction_info.interactCallback = gizmo.editCallback;
     }
 }
 
@@ -429,8 +435,10 @@ pub fn drawGizmos(gizmos: *GizmoStorage, interaction_info: *InteractionInfo, cam
     drawTranslationGizmos(&point_offset, gizmos, interaction_info);
 
     const io: *nc.ImGuiIO = nc.igGetIO();
-    if (!io.MouseDown[0])
+    if (!io.MouseDown[0]) {
         interaction_info.interactFn = null;
+        interaction_info.interactCallback = null;
+    }
 
     if (interaction_info.interactFn) |interactFn| {
         interactFn(interaction_info);
