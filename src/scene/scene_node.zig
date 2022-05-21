@@ -91,7 +91,7 @@ pub const SceneNode = struct {
 
         const ind: usize = old_parent.removeChild(self);
 
-        const ins_pos: usize = if (new_parent == old_parent and ind < insert_index)
+        const ins_pos: usize = if (new_parent == old_parent and ind < insert_index - 1)
             insert_index - 1
         else
             insert_index;
