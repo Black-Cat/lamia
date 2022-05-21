@@ -64,10 +64,10 @@ pub const SceneTree = struct {
         nyan.app.config.map.put(scene_tree_key_open, if (self.window.open) "1" else "0") catch unreachable;
     }
 
-    fn drawNodeCollection(collection: []const NodeType) void {
+    fn drawNodeCollection(collection: []const NodeType, selected_node: *?*SceneNode) void {
         for (collection) |*node_type|
             if (nc.igSelectable_Bool(node_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
-                addNode(node_type);
+                addNode(node_type, selected_node);
     }
 
     fn windowDraw(widget: *Widget) void {
@@ -110,13 +110,13 @@ pub const SceneTree = struct {
 
             nc.igSeparator();
 
-            drawNodeCollection(NodeCollection.surfaces[0..]);
+            drawNodeCollection(NodeCollection.surfaces[0..], self.selected_scene_node);
             nc.igNextColumn();
-            drawNodeCollection(NodeCollection.modifiers[0..]);
+            drawNodeCollection(NodeCollection.modifiers[0..], self.selected_scene_node);
             nc.igNextColumn();
-            drawNodeCollection(NodeCollection.combinators[0..]);
+            drawNodeCollection(NodeCollection.combinators[0..], self.selected_scene_node);
             nc.igNextColumn();
-            drawNodeCollection(NodeCollection.special[0..]);
+            drawNodeCollection(NodeCollection.special[0..], self.selected_scene_node);
 
             nc.igColumns(1, null, true);
             nc.igSetCursorPosX(600);
@@ -156,9 +156,10 @@ pub const SceneTree = struct {
         nc.igEnd();
     }
 
-    fn addNode(node_type: *const NodeType) void {
-        var node: *SceneNode = Global.main_scene.root.add();
-        node.init(node_type, node_type.name, &Global.main_scene.root);
+    fn addNode(node_type: *const NodeType, selected_node: *?*SceneNode) void {
+        const parent: *SceneNode = if (selected_node.*) |n| n else &Global.main_scene.root;
+        var node: *SceneNode = parent.add();
+        node.init(node_type, node_type.name, parent);
         Global.main_scene.recompile();
     }
 

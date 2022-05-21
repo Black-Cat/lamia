@@ -16,7 +16,7 @@ const FileWatcher = @import("file_watcher.zig").FileWatcher;
 
 pub fn scene2shader(scene: *Scene, settings: *SceneNode) vk.ShaderModule {
     const code: []const u8 = scene2code(scene, settings, nsdf.Templates.layout, nsdf.Templates.shader_main);
-    std.debug.print("{s}\n", .{code});
+    //std.debug.print("{s}\n", .{code});
 
     // =c Crashes compiler in zig 0.8
     //const code_zero: [:0]const u8 = code[0..code_len :0];
