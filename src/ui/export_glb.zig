@@ -784,7 +784,7 @@ fn createDescriptorPool() nyan.vk.DescriptorPool {
     };
 
     return nyan.vkw.vkd.createDescriptorPool(nyan.vkw.vkc.device, descriptor_pool_info, null) catch |err| {
-        nyan.vkw.printVulkanError("Couldn't create descriptor pool for mesh export", err, nyan.app.allocator);
+        nyan.printVulkanError("Couldn't create descriptor pool for mesh export", err);
         return undefined;
     };
 }
@@ -814,7 +814,7 @@ fn createDescriptorSetLayout() nyan.vk.DescriptorSetLayout {
     };
 
     return nyan.vkw.vkd.createDescriptorSetLayout(nyan.vkw.vkc.device, set_layout_create_info, null) catch |err| {
-        nyan.vkw.printVulkanError("Can't create descriptor set layout for mesh export", err, nyan.vkw.vkc.allocator);
+        nyan.printVulkanError("Can't create descriptor set layout for mesh export", err);
         return undefined;
     };
 }
@@ -829,7 +829,7 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
     };
 
     nyan.vkw.vkd.allocateDescriptorSets(nyan.vkw.vkc.device, descriptor_set_allocate_info, @ptrCast([*]nyan.vk.DescriptorSet, &descriptor_set)) catch |err| {
-        nyan.vkw.printVulkanError("Can't allocate descriptor set for mesh export", err, nyan.app.allocator);
+        nyan.printVulkanError("Can't allocate descriptor set for mesh export", err);
     };
 
     const vrt_buffer_info: nyan.vk.DescriptorBufferInfo = .{
@@ -879,7 +879,7 @@ fn createPipelineCache() nyan.vk.PipelineCache {
     };
 
     return nyan.vkw.vkd.createPipelineCache(nyan.vkw.vkc.device, pipeline_cache_create_info, null) catch |err| {
-        nyan.vkw.printVulkanError("Can't create pipeline cache for mesh export", err, nyan.vkw.vkc.allocator);
+        nyan.printVulkanError("Can't create pipeline cache for mesh export", err);
         return undefined;
     };
 }
@@ -894,7 +894,7 @@ fn createPipelineLayout(descriptor_set_layout: nyan.vk.DescriptorSetLayout) nyan
     };
 
     return nyan.vkw.vkd.createPipelineLayout(nyan.vkw.vkc.device, pipeline_layout_create_info, null) catch |err| {
-        nyan.vkw.printVulkanError("Can't create pipeline layout for mesh export", err, nyan.vkw.vkc.allocator);
+        nyan.printVulkanError("Can't create pipeline layout for mesh export", err);
         return undefined;
     };
 }
@@ -924,7 +924,7 @@ fn createComputePipeline(pipeline_cache: nyan.vk.PipelineCache, pipeline_layout:
         null,
         @ptrCast([*]nyan.vk.Pipeline, &pipeline),
     ) catch |err| {
-        nyan.vkw.printVulkanError("Can't create pipeline for mesh export", err, nyan.vkw.vkc.allocator);
+        nyan.printVulkanError("Can't create pipeline for mesh export", err);
     };
 
     return pipeline;

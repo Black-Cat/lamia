@@ -148,7 +148,7 @@ pub const Export2dPopup = struct {
         };
 
         var staging_buffer: nyan.vk.Buffer = nyan.vkw.vkd.createBuffer(nyan.vkw.vkc.device, buffer_info, null) catch |err| {
-            nyan.vkw.printVulkanError("Can't crete buffer for export 2d texture", err, nyan.vkw.vkc.allocator);
+            nyan.printVulkanError("Can't crete buffer for export 2d texture", err);
             return;
         };
         defer nyan.vkw.vkd.destroyBuffer(nyan.vkw.vkc.device, staging_buffer, null);
@@ -161,13 +161,13 @@ pub const Export2dPopup = struct {
         };
 
         var staging_buffer_memory: nyan.vk.DeviceMemory = nyan.vkw.vkd.allocateMemory(nyan.vkw.vkc.device, alloc_info, null) catch |err| {
-            nyan.vkw.printVulkanError("Can't allocate buffer for export 2d texture", err, nyan.vkw.vkc.allocator);
+            nyan.printVulkanError("Can't allocate buffer for export 2d texture", err);
             return;
         };
         defer nyan.vkw.vkd.freeMemory(nyan.vkw.vkc.device, staging_buffer_memory, null);
 
         nyan.vkw.vkd.bindBufferMemory(nyan.vkw.vkc.device, staging_buffer, staging_buffer_memory, 0) catch |err| {
-            nyan.vkw.printVulkanError("Can't bind buffer memory for export 2d texture", err, nyan.vkw.vkc.allocator);
+            nyan.printVulkanError("Can't bind buffer memory for export 2d texture", err);
             return;
         };
 
@@ -224,7 +224,7 @@ pub const Export2dPopup = struct {
         nyan.global_render_graph.submitCommandBuffer(command_buffer);
 
         var mapped_memory: *anyopaque = nyan.vkw.vkd.mapMemory(nyan.vkw.vkc.device, staging_buffer_memory, 0, tex_size, .{}) catch |err| {
-            nyan.vkw.printVulkanError("Can't map memory for export 2d texture", err, nyan.vkw.vkc.allocator);
+            nyan.printVulkanError("Can't map memory for export 2d texture", err);
             return;
         } orelse return;
         defer nyan.vkw.vkd.unmapMemory(nyan.vkw.vkc.device, staging_buffer_memory);

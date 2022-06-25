@@ -154,7 +154,7 @@ pub const UI = struct {
                 if (nc.igMenuItem_BoolPtr("VSync", "", &vsync, true)) {
                     nyan.app.config.putBool("swapchain_vsync", vsync);
                     nyan.global_render_graph.final_swapchain.recreateWithSameSize() catch |err| {
-                        nyan.vkw.printVulkanError("Can't recreate swapchain after changing vsync", err, nyan.app.allocator);
+                        nyan.printVulkanError("Can't recreate swapchain after changing vsync", err);
                     };
                 }
                 nc.igEndMenu();
