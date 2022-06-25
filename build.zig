@@ -49,7 +49,7 @@ pub fn build(b: *Builder) void {
     lamia.setBuildMode(mode);
     lamia.linkSystemLibrary("c");
 
-    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation, enable_tracing);
+    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation, enable_tracing, true);
 
     lamia.linkLibrary(nyancoreLib);
     lamia.step.dependOn(&nyancoreLib.step);
