@@ -118,7 +118,7 @@ pub const Viewport = struct {
 
         self.render_pass.deinit();
 
-        nyan.vkw.vkd.destroyDescriptorPool(nyan.vkw.vkc.device, self.descriptor_pool, null);
+        nyan.vkctxt.vkd.destroyDescriptorPool(nyan.vkctxt.device, self.descriptor_pool, null);
         self.viewport_texture.deinit();
 
         nyan.app.allocator.free(self.descriptor_sets);
@@ -252,7 +252,7 @@ pub const Viewport = struct {
             .flags = .{},
         };
 
-        self.descriptor_pool = nyan.vkw.vkd.createDescriptorPool(nyan.vkw.vkc.device, descriptor_pool_info, null) catch |err| {
+        self.descriptor_pool = nyan.vkctxt.vkd.createDescriptorPool(nyan.vkctxt.device, descriptor_pool_info, null) catch |err| {
             nyan.printVulkanError("Couldn't create descriptor pool for viewport", err);
             return;
         };
@@ -266,7 +266,7 @@ pub const Viewport = struct {
                 .descriptor_set_count = 1,
             };
 
-            nyan.vkw.vkd.allocateDescriptorSets(nyan.vkw.vkc.device, descriptor_set_allocate_info, @ptrCast([*]nyan.vk.DescriptorSet, ds)) catch |err| {
+            nyan.vkctxt.vkd.allocateDescriptorSets(nyan.vkctxt.device, descriptor_set_allocate_info, @ptrCast([*]nyan.vk.DescriptorSet, ds)) catch |err| {
                 nyan.printVulkanError("Can't allocate descriptor set for viewport", err);
                 return;
             };
@@ -296,7 +296,7 @@ pub const Viewport = struct {
                 .dst_array_element = 0,
             };
 
-            nyan.vkw.vkd.updateDescriptorSets(nyan.vkw.vkc.device, 1, @ptrCast([*]const nyan.vk.WriteDescriptorSet, &write_descriptor_set), 0, undefined);
+            nyan.vkctxt.vkd.updateDescriptorSets(nyan.vkctxt.device, 1, @ptrCast([*]const nyan.vk.WriteDescriptorSet, &write_descriptor_set), 0, undefined);
         }
     }
 };

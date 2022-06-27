@@ -94,7 +94,7 @@ pub const Export2dPopup = struct {
 
         // Create shader
         var shader: nyan.vk.ShaderModule = scene2shader(&Global.main_scene, &settings_node);
-        defer nyan.vkw.vkd.destroyShaderModule(nyan.vkw.vkc.device, shader, null);
+        defer nyan.vkctxt.vkd.destroyShaderModule(nyan.vkctxt.device, shader, null);
 
         // Create texture
         const image_format: nyan.vk.Format = nyan.global_render_graph.final_swapchain.image_format;
@@ -147,26 +147,26 @@ pub const Export2dPopup = struct {
             .p_queue_family_indices = undefined,
         };
 
-        var staging_buffer: nyan.vk.Buffer = nyan.vkw.vkd.createBuffer(nyan.vkw.vkc.device, buffer_info, null) catch |err| {
+        var staging_buffer: nyan.vk.Buffer = nyan.vkctxt.vkd.createBuffer(nyan.vkctxt.device, buffer_info, null) catch |err| {
             nyan.printVulkanError("Can't crete buffer for export 2d texture", err);
             return;
         };
-        defer nyan.vkw.vkd.destroyBuffer(nyan.vkw.vkc.device, staging_buffer, null);
+        defer nyan.vkctxt.vkd.destroyBuffer(nyan.vkctxt.device, staging_buffer, null);
 
-        var mem_req: nyan.vk.MemoryRequirements = nyan.vkw.vkd.getBufferMemoryRequirements(nyan.vkw.vkc.device, staging_buffer);
+        var mem_req: nyan.vk.MemoryRequirements = nyan.vkctxt.vkd.getBufferMemoryRequirements(nyan.vkctxt.device, staging_buffer);
 
         const alloc_info: nyan.vk.MemoryAllocateInfo = .{
             .allocation_size = mem_req.size,
-            .memory_type_index = nyan.vkw.vkc.getMemoryType(mem_req.memory_type_bits, .{ .host_visible_bit = true, .host_coherent_bit = true }),
+            .memory_type_index = nyan.vkctxt.getMemoryType(mem_req.memory_type_bits, .{ .host_visible_bit = true, .host_coherent_bit = true }),
         };
 
-        var staging_buffer_memory: nyan.vk.DeviceMemory = nyan.vkw.vkd.allocateMemory(nyan.vkw.vkc.device, alloc_info, null) catch |err| {
+        var staging_buffer_memory: nyan.vk.DeviceMemory = nyan.vkctxt.vkd.allocateMemory(nyan.vkctxt.device, alloc_info, null) catch |err| {
             nyan.printVulkanError("Can't allocate buffer for export 2d texture", err);
             return;
         };
-        defer nyan.vkw.vkd.freeMemory(nyan.vkw.vkc.device, staging_buffer_memory, null);
+        defer nyan.vkctxt.vkd.freeMemory(nyan.vkctxt.device, staging_buffer_memory, null);
 
-        nyan.vkw.vkd.bindBufferMemory(nyan.vkw.vkc.device, staging_buffer, staging_buffer_memory, 0) catch |err| {
+        nyan.vkctxt.vkd.bindBufferMemory(nyan.vkctxt.device, staging_buffer, staging_buffer_memory, 0) catch |err| {
             nyan.printVulkanError("Can't bind buffer memory for export 2d texture", err);
             return;
         };
@@ -188,7 +188,7 @@ pub const Export2dPopup = struct {
             },
         };
 
-        nyan.vkw.vkd.cmdPipelineBarrier(
+        nyan.vkctxt.vkd.cmdPipelineBarrier(
             command_buffer,
             .{ .color_attachment_output_bit = true },
             .{ .transfer_bit = true },
@@ -219,15 +219,15 @@ pub const Export2dPopup = struct {
             },
         };
 
-        nyan.vkw.vkd.cmdCopyImageToBuffer(command_buffer, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast([*]const nyan.vk.BufferImageCopy, &region));
+        nyan.vkctxt.vkd.cmdCopyImageToBuffer(command_buffer, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast([*]const nyan.vk.BufferImageCopy, &region));
         nyan.RenderGraph.endSingleTimeCommands(command_buffer);
         nyan.global_render_graph.submitCommandBuffer(command_buffer);
 
-        var mapped_memory: *anyopaque = nyan.vkw.vkd.mapMemory(nyan.vkw.vkc.device, staging_buffer_memory, 0, tex_size, .{}) catch |err| {
+        var mapped_memory: *anyopaque = nyan.vkctxt.vkd.mapMemory(nyan.vkctxt.device, staging_buffer_memory, 0, tex_size, .{}) catch |err| {
             nyan.printVulkanError("Can't map memory for export 2d texture", err);
             return;
         } orelse return;
-        defer nyan.vkw.vkd.unmapMemory(nyan.vkw.vkc.device, staging_buffer_memory);
+        defer nyan.vkctxt.vkd.unmapMemory(nyan.vkctxt.device, staging_buffer_memory);
 
         // Write buffer to path
         const path: []const u8 = std.mem.sliceTo(&self.selected_file_path, 0);

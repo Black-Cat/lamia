@@ -10,7 +10,7 @@ const nm = nyan.Math;
 const Global = @import("../global.zig");
 const mc = @import("export_glb_marching_cubes.zig");
 
-const Buffer = nyan.vkw.Buffer;
+const Buffer = nyan.vkctxt.Buffer;
 
 const scene2computeShader = @import("../scene/scene2shader.zig").scene2computeShader;
 
@@ -710,25 +710,25 @@ fn exportToMesh() void {
         shader_export_compute_layout_header,
         shader_buf,
     );
-    defer nyan.vkw.vkd.destroyShaderModule(nyan.vkw.vkc.device, extract_shader, null);
+    defer nyan.vkctxt.vkd.destroyShaderModule(nyan.vkctxt.device, extract_shader, null);
 
     const descriptor_pool: nyan.vk.DescriptorPool = createDescriptorPool();
-    defer nyan.vkw.vkd.destroyDescriptorPool(nyan.vkw.vkc.device, descriptor_pool, null);
+    defer nyan.vkctxt.vkd.destroyDescriptorPool(nyan.vkctxt.device, descriptor_pool, null);
     const descriptor_set_layout: nyan.vk.DescriptorSetLayout = createDescriptorSetLayout();
-    defer nyan.vkw.vkd.destroyDescriptorSetLayout(nyan.vkw.vkc.device, descriptor_set_layout, null);
+    defer nyan.vkctxt.vkd.destroyDescriptorSetLayout(nyan.vkctxt.device, descriptor_set_layout, null);
     const descriptor_set: nyan.vk.DescriptorSet = allocateDescriptorSet(descriptor_pool, descriptor_set_layout, &vertex_buffer, &vertex_inside_buffer);
 
     const pipeline_cache: nyan.vk.PipelineCache = createPipelineCache();
-    defer nyan.vkw.vkd.destroyPipelineCache(nyan.vkw.vkc.device, pipeline_cache, null);
+    defer nyan.vkctxt.vkd.destroyPipelineCache(nyan.vkctxt.device, pipeline_cache, null);
     const pipeline_layout: nyan.vk.PipelineLayout = createPipelineLayout(descriptor_set_layout);
-    defer nyan.vkw.vkd.destroyPipelineLayout(nyan.vkw.vkc.device, pipeline_layout, null);
+    defer nyan.vkctxt.vkd.destroyPipelineLayout(nyan.vkctxt.device, pipeline_layout, null);
     const extract_pipeline: nyan.vk.Pipeline = createComputePipeline(pipeline_cache, pipeline_layout, extract_shader);
-    defer nyan.vkw.vkd.destroyPipeline(nyan.vkw.vkc.device, extract_pipeline, null);
+    defer nyan.vkctxt.vkd.destroyPipeline(nyan.vkctxt.device, extract_pipeline, null);
 
     const command_buffer: nyan.vk.CommandBuffer = nyan.global_render_graph.allocateCommandBuffer();
     nyan.RenderGraph.beginSingleTimeCommands(command_buffer);
 
-    nyan.vkw.vkd.cmdBindDescriptorSets(
+    nyan.vkctxt.vkd.cmdBindDescriptorSets(
         command_buffer,
         .compute,
         pipeline_layout,
@@ -738,9 +738,9 @@ fn exportToMesh() void {
         0,
         undefined,
     );
-    nyan.vkw.vkd.cmdBindPipeline(command_buffer, .compute, extract_pipeline);
+    nyan.vkctxt.vkd.cmdBindPipeline(command_buffer, .compute, extract_pipeline);
 
-    nyan.vkw.vkd.cmdDispatch(command_buffer, (edge_count / 128) + 1, 1, 1);
+    nyan.vkctxt.vkd.cmdDispatch(command_buffer, (edge_count / 128) + 1, 1, 1);
 
     nyan.RenderGraph.endSingleTimeCommands(command_buffer);
     nyan.global_render_graph.submitCommandBuffer(command_buffer);
@@ -783,7 +783,7 @@ fn createDescriptorPool() nyan.vk.DescriptorPool {
         .flags = .{},
     };
 
-    return nyan.vkw.vkd.createDescriptorPool(nyan.vkw.vkc.device, descriptor_pool_info, null) catch |err| {
+    return nyan.vkctxt.vkd.createDescriptorPool(nyan.vkctxt.device, descriptor_pool_info, null) catch |err| {
         nyan.printVulkanError("Couldn't create descriptor pool for mesh export", err);
         return undefined;
     };
@@ -813,7 +813,7 @@ fn createDescriptorSetLayout() nyan.vk.DescriptorSetLayout {
         .flags = .{},
     };
 
-    return nyan.vkw.vkd.createDescriptorSetLayout(nyan.vkw.vkc.device, set_layout_create_info, null) catch |err| {
+    return nyan.vkctxt.vkd.createDescriptorSetLayout(nyan.vkctxt.device, set_layout_create_info, null) catch |err| {
         nyan.printVulkanError("Can't create descriptor set layout for mesh export", err);
         return undefined;
     };
@@ -828,7 +828,7 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
         .descriptor_set_count = 1,
     };
 
-    nyan.vkw.vkd.allocateDescriptorSets(nyan.vkw.vkc.device, descriptor_set_allocate_info, @ptrCast([*]nyan.vk.DescriptorSet, &descriptor_set)) catch |err| {
+    nyan.vkctxt.vkd.allocateDescriptorSets(nyan.vkctxt.device, descriptor_set_allocate_info, @ptrCast([*]nyan.vk.DescriptorSet, &descriptor_set)) catch |err| {
         nyan.printVulkanError("Can't allocate descriptor set for mesh export", err);
     };
 
@@ -867,7 +867,7 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
         },
     };
 
-    nyan.vkw.vkd.updateDescriptorSets(nyan.vkw.vkc.device, 2, @ptrCast([*]const nyan.vk.WriteDescriptorSet, &write_descriptor_set), 0, undefined);
+    nyan.vkctxt.vkd.updateDescriptorSets(nyan.vkctxt.device, 2, @ptrCast([*]const nyan.vk.WriteDescriptorSet, &write_descriptor_set), 0, undefined);
     return descriptor_set;
 }
 
@@ -878,7 +878,7 @@ fn createPipelineCache() nyan.vk.PipelineCache {
         .p_initial_data = undefined,
     };
 
-    return nyan.vkw.vkd.createPipelineCache(nyan.vkw.vkc.device, pipeline_cache_create_info, null) catch |err| {
+    return nyan.vkctxt.vkd.createPipelineCache(nyan.vkctxt.device, pipeline_cache_create_info, null) catch |err| {
         nyan.printVulkanError("Can't create pipeline cache for mesh export", err);
         return undefined;
     };
@@ -893,7 +893,7 @@ fn createPipelineLayout(descriptor_set_layout: nyan.vk.DescriptorSetLayout) nyan
         .flags = .{},
     };
 
-    return nyan.vkw.vkd.createPipelineLayout(nyan.vkw.vkc.device, pipeline_layout_create_info, null) catch |err| {
+    return nyan.vkctxt.vkd.createPipelineLayout(nyan.vkctxt.device, pipeline_layout_create_info, null) catch |err| {
         nyan.printVulkanError("Can't create pipeline layout for mesh export", err);
         return undefined;
     };
@@ -916,8 +916,8 @@ fn createComputePipeline(pipeline_cache: nyan.vk.PipelineCache, pipeline_layout:
     };
 
     var pipeline: nyan.vk.Pipeline = undefined;
-    _ = nyan.vkw.vkd.createComputePipelines(
-        nyan.vkw.vkc.device,
+    _ = nyan.vkctxt.vkd.createComputePipelines(
+        nyan.vkctxt.device,
         pipeline_cache,
         1,
         @ptrCast([*]const nyan.vk.ComputePipelineCreateInfo, &info),
