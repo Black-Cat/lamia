@@ -66,7 +66,7 @@ pub const Scene = struct {
     }
 
     pub fn deinit(self: *Scene) void {
-        nyan.vkctxt.vkd.destroyShaderModule(nyan.vkctxt.device, self.shader.?, null);
+        nyan.vkfn.d.destroyShaderModule(nyan.vkctxt.device, self.shader.?, null);
 
         self.rg_resource.deinit();
 
@@ -189,7 +189,7 @@ pub const Scene = struct {
 
     pub fn recompile(self: *Scene) void {
         if (self.shader) |sh|
-            nyan.vkctxt.vkd.destroyShaderModule(nyan.vkctxt.device, sh, null);
+            nyan.vkfn.d.destroyShaderModule(nyan.vkctxt.device, sh, null);
 
         self.shader = scene2shader(self, &self.settings);
 
