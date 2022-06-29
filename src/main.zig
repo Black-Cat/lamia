@@ -12,6 +12,11 @@ fn setIcon(context: *anyopaque) void {
     nyan.app.set_icon(@embedFile("../icon.ico"));
 }
 
+fn setDefaultSettings() void {
+    var config: *nyan.Config = nyan.app.config;
+    config.putBool("swapchain_vsync", true);
+}
+
 pub fn main() !void {
     const allocator: std.mem.Allocator = std.testing.allocator;
 
@@ -40,6 +45,8 @@ pub fn main() !void {
 
     nyan.app.init("lamia", allocator, systems);
     defer nyan.app.deinit();
+
+    setDefaultSettings();
 
     // X11 Doesn't allow to set icon at startup due to it's multiple process async nature
     // There is also no adequate way to check if icon was set or not
