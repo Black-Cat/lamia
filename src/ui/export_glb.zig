@@ -725,11 +725,11 @@ fn exportToMesh() void {
     const extract_pipeline: nyan.vk.Pipeline = createComputePipeline(pipeline_cache, pipeline_layout, extract_shader);
     defer nyan.vkfn.d.destroyPipeline(nyan.vkctxt.device, extract_pipeline, null);
 
-    const command_buffer: nyan.vk.CommandBuffer = nyan.global_render_graph.allocateCommandBuffer();
-    nyan.RenderGraph.beginSingleTimeCommands(command_buffer);
+    var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(&nyan.global_render_graph.compute_command_pool) catch unreachable;
+    scb.command_buffer.beginSingleTimeCommands();
 
     nyan.vkfn.d.cmdBindDescriptorSets(
-        command_buffer,
+        scb.command_buffer.vk_ref,
         .compute,
         pipeline_layout,
         0,
@@ -738,12 +738,12 @@ fn exportToMesh() void {
         0,
         undefined,
     );
-    nyan.vkfn.d.cmdBindPipeline(command_buffer, .compute, extract_pipeline);
+    nyan.vkfn.d.cmdBindPipeline(scb.command_buffer.vk_ref, .compute, extract_pipeline);
 
-    nyan.vkfn.d.cmdDispatch(command_buffer, (edge_count / 128) + 1, 1, 1);
+    nyan.vkfn.d.cmdDispatch(scb.command_buffer.vk_ref, (edge_count / 128) + 1, 1, 1);
 
-    nyan.RenderGraph.endSingleTimeCommands(command_buffer);
-    nyan.global_render_graph.submitCommandBuffer(command_buffer);
+    scb.command_buffer.endSingleTimeCommands();
+    scb.submit(nyan.vkctxt.compute_queue);
 
     var indices: []u32 = nyan.app.allocator.alloc(u32, getVertexCount() * 15) catch unreachable;
     defer nyan.app.allocator.free(indices);

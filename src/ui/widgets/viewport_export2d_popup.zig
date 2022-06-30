@@ -129,9 +129,9 @@ pub const Export2dPopup = struct {
         defer render_pass.rg_pass.deinitFn(&render_pass.rg_pass);
 
         // Use render pass
-        const command_buffer: nyan.vk.CommandBuffer = nyan.global_render_graph.allocateCommandBuffer();
-        nyan.RenderGraph.beginSingleTimeCommands(command_buffer);
-        render_pass.rg_pass.renderFn(&render_pass.rg_pass, command_buffer, 0);
+        var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(&nyan.global_render_graph.command_pool) catch unreachable;
+        scb.command_buffer.beginSingleTimeCommands();
+        render_pass.rg_pass.renderFn(&render_pass.rg_pass, &scb.command_buffer, 0);
 
         // Copy image to buffer
         const tex_size: usize = @intCast(usize, 4 * tex.width * tex.height);
@@ -189,7 +189,7 @@ pub const Export2dPopup = struct {
         };
 
         nyan.vkfn.d.cmdPipelineBarrier(
-            command_buffer,
+            scb.command_buffer.vk_ref,
             .{ .color_attachment_output_bit = true },
             .{ .transfer_bit = true },
             .{},
@@ -219,9 +219,9 @@ pub const Export2dPopup = struct {
             },
         };
 
-        nyan.vkfn.d.cmdCopyImageToBuffer(command_buffer, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast([*]const nyan.vk.BufferImageCopy, &region));
-        nyan.RenderGraph.endSingleTimeCommands(command_buffer);
-        nyan.global_render_graph.submitCommandBuffer(command_buffer);
+        nyan.vkfn.d.cmdCopyImageToBuffer(scb.command_buffer.vk_ref, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast([*]const nyan.vk.BufferImageCopy, &region));
+        scb.command_buffer.endSingleTimeCommands();
+        scb.submit(nyan.vkctxt.graphics_queue);
 
         var mapped_memory: *anyopaque = nyan.vkfn.d.mapMemory(nyan.vkctxt.device, staging_buffer_memory, 0, tex_size, .{}) catch |err| {
             nyan.printVulkanError("Can't map memory for export 2d texture", err);
