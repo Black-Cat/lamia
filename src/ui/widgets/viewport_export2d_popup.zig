@@ -109,10 +109,9 @@ pub const Export2dPopup = struct {
         defer tex.deinit();
 
         // Create render pass
-        var render_pass: nyan.ScreenRenderPass = undefined;
+        var render_pass: nyan.ScreenRenderPass(nyan.ViewportTexture) = undefined;
         render_pass.init(
             "Export 2D Render Pass",
-            nyan.app.allocator,
             &tex,
             &shader,
             @sizeOf(FragPushConstBlock),
@@ -121,7 +120,7 @@ pub const Export2dPopup = struct {
         defer render_pass.deinit();
 
         var framebuffer_index: u32 = 0;
-        render_pass.framebuffer_index = &framebuffer_index;
+        render_pass.render_pass.framebuffer_index = &framebuffer_index;
 
         render_pass.rg_pass.final_layout = .transfer_src_optimal;
 
@@ -134,7 +133,7 @@ pub const Export2dPopup = struct {
         render_pass.rg_pass.renderFn(&render_pass.rg_pass, &scb.command_buffer, 0);
 
         // Copy image to buffer
-        const tex_size: usize = @intCast(usize, 4 * tex.width * tex.height);
+        const tex_size: usize = @intCast(usize, 4 * tex.extent.width * tex.extent.height);
 
         const buffer_info: nyan.vk.BufferCreateInfo = .{
             .size = tex_size,
@@ -212,11 +211,7 @@ pub const Export2dPopup = struct {
                 .layer_count = 1,
             },
             .image_offset = .{ .x = 0, .y = 0, .z = 0 },
-            .image_extent = .{
-                .width = @intCast(u32, tex.width),
-                .height = @intCast(u32, tex.height),
-                .depth = 1,
-            },
+            .image_extent = tex.textures[0].extent,
         };
 
         nyan.vkfn.d.cmdCopyImageToBuffer(scb.command_buffer.vk_ref, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast([*]const nyan.vk.BufferImageCopy, &region));
@@ -240,8 +235,8 @@ pub const Export2dPopup = struct {
         const writer = file.writer();
 
         var image: nyan.Image = .{
-            .width = tex.width,
-            .height = tex.height,
+            .width = tex.extent.width,
+            .height = tex.extent.height,
             .data = @ptrCast([*]u8, mapped_memory)[0..tex_size],
         };
 

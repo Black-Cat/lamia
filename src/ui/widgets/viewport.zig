@@ -35,7 +35,7 @@ pub const Viewport = struct {
     nyanui: *nyan.UI,
 
     viewport_texture: nyan.ViewportTexture,
-    render_pass: nyan.ScreenRenderPass,
+    render_pass: nyan.ScreenRenderPass(nyan.ViewportTexture),
 
     descriptor_pool: nyan.vk.DescriptorPool,
     descriptor_sets: []nyan.vk.DescriptorSet,
@@ -96,7 +96,6 @@ pub const Viewport = struct {
 
         self.render_pass.init(
             "Viewport Render Pass",
-            nyan.app.allocator,
             &self.viewport_texture,
             &Global.main_scene.shader.?,
             @sizeOf(FragPushConstBlock),
@@ -105,7 +104,10 @@ pub const Viewport = struct {
 
         self.render_pass.rg_pass.final_layout = .shader_read_only_optimal;
 
-        Global.main_scene.rg_resource.registerOnChangeCallback(&self.render_pass.rg_pass, nyan.ScreenRenderPass.recreatePipelineOnShaderChange);
+        Global.main_scene.rg_resource.registerOnChangeCallback(
+            &self.render_pass.rg_pass,
+            nyan.ScreenRenderPass(nyan.ViewportTexture).recreatePipelineOnShaderChange,
+        );
 
         self.render_pass.rg_pass.appendWriteResource(&self.viewport_texture.rg_resource);
         self.render_pass.rg_pass.initFn(&self.render_pass.rg_pass);
@@ -134,9 +136,9 @@ pub const Viewport = struct {
 
         if (wasVisible != self.visible) {
             if (self.visible) {
-                self.nyanui.render_pass.appendReadResource(&self.viewport_texture.rg_resource);
+                self.nyanui.rg_pass.appendReadResource(&self.viewport_texture.rg_resource);
             } else {
-                self.nyanui.render_pass.removeReadResource(&self.viewport_texture.rg_resource);
+                self.nyanui.rg_pass.removeReadResource(&self.viewport_texture.rg_resource);
             }
             nyan.global_render_graph.needs_rebuilding = true;
         }
@@ -153,7 +155,7 @@ pub const Viewport = struct {
         var cur_height: u32 = @floatToInt(u32, @round(max_pos.y - min_pos.y));
 
         if (nc.igButton(Export2dPopup.name, .{ .x = 0, .y = 0 }))
-            self.export2dPopup.init(&self.camera, self.viewport_texture.width, self.viewport_texture.height, &self.frag_push_const_block);
+            self.export2dPopup.init(&self.camera, self.viewport_texture.extent.width, self.viewport_texture.extent.height, &self.frag_push_const_block);
 
         var toolbar_min: nc.ImVec2 = undefined;
         var toolbar_max: nc.ImVec2 = undefined;
@@ -181,7 +183,7 @@ pub const Viewport = struct {
             self.camera.viewAlong(.{ 0.0, 0.0, 1.0 }, .{ 0.0, 1.0, 0.0 });
         }
 
-        if (self.visible and (cur_width != self.viewport_texture.width or cur_height != self.viewport_texture.height)) {
+        if (self.visible and (cur_width != self.viewport_texture.extent.width or cur_height != self.viewport_texture.extent.height)) {
             self.viewport_texture.resize(&nyan.global_render_graph, cur_width, cur_height);
             nyan.global_render_graph.changeResourceBetweenFrames(&self.viewport_texture.rg_resource, createDescriptors);
         }

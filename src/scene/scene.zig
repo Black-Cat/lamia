@@ -47,7 +47,6 @@ pub const Scene = struct {
 
     pub fn create_shader_resource(self: *Scene) void {
         self.rg_resource.init("Scene Shader", nyan.app.allocator);
-        nyan.global_render_graph.resources.append(&self.rg_resource) catch unreachable;
     }
 
     pub fn init(self: *Scene) void {

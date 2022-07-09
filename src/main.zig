@@ -26,7 +26,7 @@ pub fn main() !void {
     var ui: UI = undefined;
     ui.init(allocator);
 
-    try nyan.global_render_graph.passes.append(&ui.nyanui.render_pass);
+    try nyan.global_render_graph.passes.append(&ui.nyanui.rg_pass);
 
     Global.file_watcher.init(allocator);
     defer Global.file_watcher.deinit();
