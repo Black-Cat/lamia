@@ -93,8 +93,8 @@ pub const Export2dPopup = struct {
         }
 
         // Create shader
-        var shader: nyan.vk.ShaderModule = scene2shader(&Global.main_scene, &settings_node);
-        defer nyan.vkfn.d.destroyShaderModule(nyan.vkctxt.device, shader, null);
+        var shader: nyan.ShaderModule = scene2shader(&Global.main_scene, &settings_node);
+        defer shader.destroy();
 
         // Create texture
         const image_format: nyan.vk.Format = nyan.global_render_graph.final_swapchain.image_format;
@@ -113,7 +113,7 @@ pub const Export2dPopup = struct {
         render_pass.init(
             "Export 2D Render Pass",
             &tex,
-            &shader,
+            &shader.vk_ref,
             @sizeOf(FragPushConstBlock),
             self.viewport_push_block,
         );

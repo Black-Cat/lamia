@@ -14,14 +14,14 @@ const sbn = @import("../nodes/special/sphere_bound.zig");
 const Global = @import("../global.zig");
 const FileWatcher = @import("file_watcher.zig").FileWatcher;
 
-pub fn scene2shader(scene: *Scene, settings: *SceneNode) vk.ShaderModule {
+pub fn scene2shader(scene: *Scene, settings: *SceneNode) nyan.ShaderModule {
     const code: []const u8 = scene2code(scene, settings, nsdf.Templates.layout, nsdf.Templates.shader_main);
     //std.debug.print("{s}\n", .{code});
 
     // =c Crashes compiler in zig 0.8
     //const code_zero: [:0]const u8 = code[0..code_len :0];
     const code_zero: [:0]const u8 = nyan.app.allocator.dupeZ(u8, code) catch unreachable;
-    const res: vk.ShaderModule = nyan.shader_util.loadShader(code_zero, .fragment);
+    const res: nyan.ShaderModule = nyan.ShaderModule.load(code_zero, .fragment);
 
     nyan.app.allocator.free(code);
     nyan.app.allocator.free(code_zero);
@@ -29,11 +29,11 @@ pub fn scene2shader(scene: *Scene, settings: *SceneNode) vk.ShaderModule {
     return res;
 }
 
-pub fn scene2computeShader(scene: *Scene, settings: *SceneNode, custom_layout: []const u8, main_fnc: []const u8) vk.ShaderModule {
+pub fn scene2computeShader(scene: *Scene, settings: *SceneNode, custom_layout: []const u8, main_fnc: []const u8) nyan.ShaderModule {
     const code: []const u8 = scene2code(scene, settings, custom_layout, main_fnc);
 
     const code_zero: [:0]const u8 = nyan.app.allocator.dupeZ(u8, code) catch unreachable;
-    const res: vk.ShaderModule = nyan.shader_util.loadShader(code_zero, .compute);
+    const res: nyan.ShaderModule = nyan.ShaderModule.load(code_zero, .compute);
 
     nyan.app.allocator.free(code);
     nyan.app.allocator.free(code_zero);

@@ -704,13 +704,13 @@ fn exportToMesh() void {
     }) catch unreachable;
     defer nyan.app.allocator.free(shader_buf);
 
-    const extract_shader: nyan.vk.ShaderModule = scene2computeShader(
+    const extract_shader: nyan.ShaderModule = scene2computeShader(
         &Global.main_scene,
         &Global.main_scene.settings,
         shader_export_compute_layout_header,
         shader_buf,
     );
-    defer nyan.vkfn.d.destroyShaderModule(nyan.vkctxt.device, extract_shader, null);
+    defer extract_shader.destroy();
 
     const descriptor_pool: nyan.vk.DescriptorPool = createDescriptorPool();
     defer nyan.vkfn.d.destroyDescriptorPool(nyan.vkctxt.device, descriptor_pool, null);
@@ -722,7 +722,7 @@ fn exportToMesh() void {
     defer nyan.vkfn.d.destroyPipelineCache(nyan.vkctxt.device, pipeline_cache, null);
     const pipeline_layout: nyan.vk.PipelineLayout = createPipelineLayout(descriptor_set_layout);
     defer nyan.vkfn.d.destroyPipelineLayout(nyan.vkctxt.device, pipeline_layout, null);
-    const extract_pipeline: nyan.vk.Pipeline = createComputePipeline(pipeline_cache, pipeline_layout, extract_shader);
+    const extract_pipeline: nyan.vk.Pipeline = createComputePipeline(pipeline_cache, pipeline_layout, extract_shader.vk_ref);
     defer nyan.vkfn.d.destroyPipeline(nyan.vkctxt.device, extract_pipeline, null);
 
     var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(&nyan.global_render_graph.compute_command_pool) catch unreachable;

@@ -36,7 +36,7 @@ pub const Scene = struct {
     camera_settings: *SceneNode,
     environment_settings: *SceneNode,
 
-    shader: ?nyan.vk.ShaderModule,
+    shader: ?nyan.ShaderModule,
     rg_resource: nyan.RGResource,
 
     fn createRoots(self: *Scene) void {
@@ -65,7 +65,7 @@ pub const Scene = struct {
     }
 
     pub fn deinit(self: *Scene) void {
-        nyan.vkfn.d.destroyShaderModule(nyan.vkctxt.device, self.shader.?, null);
+        self.shader.?.destroy();
 
         self.rg_resource.deinit();
 
@@ -188,7 +188,7 @@ pub const Scene = struct {
 
     pub fn recompile(self: *Scene) void {
         if (self.shader) |sh|
-            nyan.vkfn.d.destroyShaderModule(nyan.vkctxt.device, sh, null);
+            sh.destroy();
 
         self.shader = scene2shader(self, &self.settings);
 
