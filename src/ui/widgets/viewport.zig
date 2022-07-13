@@ -97,7 +97,7 @@ pub const Viewport = struct {
         self.render_pass.init(
             "Viewport Render Pass",
             &self.viewport_texture,
-            &Global.main_scene.shader.?.vk_ref,
+            &Global.main_scene.shader.?,
             @sizeOf(FragPushConstBlock),
             &self.frag_push_const_block,
         );

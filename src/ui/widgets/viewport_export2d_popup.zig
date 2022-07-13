@@ -113,7 +113,7 @@ pub const Export2dPopup = struct {
         render_pass.init(
             "Export 2D Render Pass",
             &tex,
-            &shader.vk_ref,
+            &shader,
             @sizeOf(FragPushConstBlock),
             self.viewport_push_block,
         );
