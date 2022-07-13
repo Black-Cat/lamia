@@ -720,9 +720,9 @@ fn exportToMesh() void {
 
     const pipeline_cache: nyan.PipelineCache = nyan.PipelineCache.createEmpty();
     defer pipeline_cache.destroy();
-    const pipeline_layout: nyan.vk.PipelineLayout = createPipelineLayout(descriptor_set_layout);
-    defer nyan.vkfn.d.destroyPipelineLayout(nyan.vkctxt.device, pipeline_layout, null);
-    const extract_pipeline: nyan.Pipeline = createComputePipeline(&pipeline_cache, pipeline_layout, &extract_shader);
+    const pipeline_layout: nyan.PipelineLayout = nyan.PipelineLayout.create(&[_]nyan.vk.DescriptorSetLayout{descriptor_set_layout}, &.{});
+    defer pipeline_layout.destroy();
+    const extract_pipeline: nyan.Pipeline = createComputePipeline(&pipeline_cache, &pipeline_layout, &extract_shader);
     defer extract_pipeline.destroy();
 
     var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(&nyan.global_render_graph.compute_command_pool) catch unreachable;
@@ -731,7 +731,7 @@ fn exportToMesh() void {
     nyan.vkfn.d.cmdBindDescriptorSets(
         scb.command_buffer.vk_ref,
         .compute,
-        pipeline_layout,
+        pipeline_layout.vk_ref,
         0,
         1,
         @ptrCast([*]const nyan.vk.DescriptorSet, &descriptor_set),
@@ -871,26 +871,11 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
     return descriptor_set;
 }
 
-fn createPipelineLayout(descriptor_set_layout: nyan.vk.DescriptorSetLayout) nyan.vk.PipelineLayout {
-    const pipeline_layout_create_info: nyan.vk.PipelineLayoutCreateInfo = .{
-        .set_layout_count = 1,
-        .p_set_layouts = @ptrCast([*]const nyan.vk.DescriptorSetLayout, &descriptor_set_layout),
-        .push_constant_range_count = 0,
-        .p_push_constant_ranges = undefined,
-        .flags = .{},
-    };
-
-    return nyan.vkfn.d.createPipelineLayout(nyan.vkctxt.device, pipeline_layout_create_info, null) catch |err| {
-        nyan.printVulkanError("Can't create pipeline layout for mesh export", err);
-        return undefined;
-    };
-}
-
-fn createComputePipeline(pipeline_cache: *const nyan.PipelineCache, pipeline_layout: nyan.vk.PipelineLayout, shader: *const nyan.ShaderModule) nyan.Pipeline {
+fn createComputePipeline(pipeline_cache: *const nyan.PipelineCache, pipeline_layout: *const nyan.PipelineLayout, shader: *const nyan.ShaderModule) nyan.Pipeline {
     const info: nyan.vk.ComputePipelineCreateInfo = .{
         .flags = .{},
         .stage = nyan.PipelineBuilder.buildShaderStageCreateInfo(.{ .compute_bit = true }, shader),
-        .layout = pipeline_layout,
+        .layout = pipeline_layout.vk_ref,
 
         .base_pipeline_handle = undefined,
         .base_pipeline_index = 0,
