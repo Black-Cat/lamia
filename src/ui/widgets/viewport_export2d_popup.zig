@@ -29,16 +29,16 @@ pub const Export2dPopup = struct {
 
     pub fn init(self: *Export2dPopup, camera: *Camera, width: u32, height: u32, viewport_push_block: *FragPushConstBlock) void {
         self.camera = camera;
-        @memcpy(@ptrCast([*]u8, &self.selected_file_path[0]), "", 1);
+        self.selected_file_path[0] = 0;
 
         self.width = width;
         self.height = height;
         self.viewport_push_block = viewport_push_block;
 
-        const camera_settings: *CameraSettings = @ptrCast(*CameraSettings, @alignCast(@alignOf(*CameraSettings), Global.main_scene.camera_settings.buffer.ptr));
+        const camera_settings: *CameraSettings = @ptrCast(@alignCast(Global.main_scene.camera_settings.buffer.ptr));
         self.overwrite_camera_settings = camera_settings.*;
 
-        const environment_settings: *EnvironmentSettings = @ptrCast(*EnvironmentSettings, @alignCast(@alignOf(*EnvironmentSettings), Global.main_scene.environment_settings.buffer.ptr));
+        const environment_settings: *EnvironmentSettings = @ptrCast(@alignCast(Global.main_scene.environment_settings.buffer.ptr));
         self.overwrite_environment_settings = environment_settings.*;
 
         nc.igOpenPopup(name, nc.ImGuiPopupFlags_None);
@@ -49,7 +49,7 @@ pub const Export2dPopup = struct {
         if (!nc.igBeginPopupModal(name, &open_modal, nc.ImGuiWindowFlags_AlwaysAutoResize))
             return;
 
-        if (nc.igInputText("Path", @ptrCast([*c]u8, &self.selected_file_path), file_path_len, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
+        if (nc.igInputText("Path", @ptrCast(&self.selected_file_path), file_path_len, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
             self.export2d();
             nc.igCloseCurrentPopup();
         }
@@ -79,15 +79,15 @@ pub const Export2dPopup = struct {
         settings_node.init(&RootType, "Export Settings", null);
         defer settings_node.deinit();
 
-        for (node_collection.scene_settings) |*node_type| {
+        for (&node_collection.scene_settings) |*node_type| {
             var node: *SceneNode = settings_node.add();
             node.init(node_type, node_type.name, &settings_node);
 
             if (std.mem.eql(u8, node_type.name, "Camera Settings")) {
-                const camera_settings: *CameraSettings = @ptrCast(*CameraSettings, @alignCast(@alignOf(*CameraSettings), node.buffer.ptr));
+                const camera_settings: *CameraSettings = @ptrCast(@alignCast(node.buffer.ptr));
                 camera_settings.* = self.overwrite_camera_settings;
             } else if (std.mem.eql(u8, node_type.name, "Environment Settings")) {
-                const environment_settings: *EnvironmentSettings = @ptrCast(*EnvironmentSettings, @alignCast(@alignOf(*EnvironmentSettings), node.buffer.ptr));
+                const environment_settings: *EnvironmentSettings = @ptrCast(@alignCast(node.buffer.ptr));
                 environment_settings.* = self.overwrite_environment_settings;
             }
         }
@@ -104,7 +104,7 @@ pub const Export2dPopup = struct {
             .color_attachment_bit = true,
             .transfer_src_bit = true,
         };
-        tex.image_layout = .@"undefined";
+        tex.image_layout = .undefined;
         tex.alloc();
         defer tex.deinit();
 
@@ -133,7 +133,7 @@ pub const Export2dPopup = struct {
         render_pass.rg_pass.renderFn(&render_pass.rg_pass, &scb.command_buffer, 0);
 
         // Copy image to buffer
-        const tex_size: usize = @intCast(usize, 4 * tex.extent.width * tex.extent.height);
+        const tex_size: usize = @intCast(4 * tex.extent.width * tex.extent.height);
 
         const buffer_info: nyan.vk.BufferCreateInfo = .{
             .size = tex_size,
@@ -146,7 +146,7 @@ pub const Export2dPopup = struct {
             .p_queue_family_indices = undefined,
         };
 
-        var staging_buffer: nyan.vk.Buffer = nyan.vkfn.d.createBuffer(nyan.vkctxt.device, buffer_info, null) catch |err| {
+        var staging_buffer: nyan.vk.Buffer = nyan.vkfn.d.createBuffer(nyan.vkctxt.device, &buffer_info, null) catch |err| {
             nyan.printVulkanError("Can't crete buffer for export 2d texture", err);
             return;
         };
@@ -159,7 +159,7 @@ pub const Export2dPopup = struct {
             .memory_type_index = nyan.vkctxt.getMemoryType(mem_req.memory_type_bits, .{ .host_visible_bit = true, .host_coherent_bit = true }),
         };
 
-        var staging_buffer_memory: nyan.vk.DeviceMemory = nyan.vkfn.d.allocateMemory(nyan.vkctxt.device, alloc_info, null) catch |err| {
+        var staging_buffer_memory: nyan.vk.DeviceMemory = nyan.vkfn.d.allocateMemory(nyan.vkctxt.device, &alloc_info, null) catch |err| {
             nyan.printVulkanError("Can't allocate buffer for export 2d texture", err);
             return;
         };
@@ -197,7 +197,7 @@ pub const Export2dPopup = struct {
             0,
             undefined,
             1,
-            @ptrCast([*]const nyan.vk.ImageMemoryBarrier, &image_memory_barrier),
+            @ptrCast(&image_memory_barrier),
         );
 
         const region: nyan.vk.BufferImageCopy = .{
@@ -214,7 +214,7 @@ pub const Export2dPopup = struct {
             .image_extent = tex.textures[0].extent,
         };
 
-        nyan.vkfn.d.cmdCopyImageToBuffer(scb.command_buffer.vk_ref, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast([*]const nyan.vk.BufferImageCopy, &region));
+        nyan.vkfn.d.cmdCopyImageToBuffer(scb.command_buffer.vk_ref, tex.textures[0].image, .transfer_src_optimal, staging_buffer, 1, @ptrCast(&region));
         scb.command_buffer.endSingleTimeCommands();
         scb.submit(nyan.vkctxt.graphics_queue);
 
@@ -237,7 +237,7 @@ pub const Export2dPopup = struct {
         var image: nyan.Image = .{
             .width = tex.extent.width,
             .height = tex.extent.height,
-            .data = @ptrCast([*]u8, mapped_memory)[0..tex_size],
+            .data = @as([*]u8, @ptrCast(mapped_memory))[0..tex_size],
         };
 
         nyan.bmp.write(writer, image) catch {};

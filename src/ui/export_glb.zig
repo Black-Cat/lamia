@@ -26,8 +26,8 @@ const ExportSettings = struct {
 };
 
 var export_settings: ExportSettings = .{
-    .min_pos = @splat(3, @as(f32, -1.0)),
-    .max_pos = @splat(3, @as(f32, 1.0)),
+    .min_pos = @splat(-1.0),
+    .max_pos = @splat(1.0),
     .resolution = .{100} ** 3,
     .precision_steps = 256,
     .precision = 0.001,
@@ -171,7 +171,7 @@ fn marchingCubes(vertex_inside_buffer: *Buffer, indices: []u32, indices_size: *u
 
     var index_count: usize = 0;
 
-    var vertex_inside: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf(u32), vertex_inside_buffer.mapped_memory));
+    var vertex_inside: [*]u32 = @ptrCast(@alignCast(vertex_inside_buffer.allocation.mapped_memory));
 
     var z: u32 = 1;
     while (z < export_settings.resolution[2] + 1) : (z += 1) {
@@ -208,9 +208,9 @@ fn marchingCubes(vertex_inside_buffer: *Buffer, indices: []u32, indices_size: *u
 
                 var i: usize = 0;
                 while (mc.triTable[verts][i] != -1) : (i += 3) {
-                    indices[index_count] = @intCast(u32, mc.triTable[verts][i]);
-                    indices[index_count + 1] = @intCast(u32, mc.triTable[verts][i + 1]);
-                    indices[index_count + 2] = @intCast(u32, mc.triTable[verts][i + 2]);
+                    indices[index_count] = @intCast(mc.triTable[verts][i]);
+                    indices[index_count + 1] = @intCast(mc.triTable[verts][i + 1]);
+                    indices[index_count + 2] = @intCast(mc.triTable[verts][i + 2]);
 
                     edge2index(indices[index_count .. index_count + 3], x, y, z, resX, resYX);
                     index_count += 3;
@@ -226,11 +226,11 @@ fn reduce(vertex_buffer: *Buffer, vertex_inside_buffer: *Buffer, indices: []u32,
     const resX: u32 = export_settings.resolution[0] + 2;
     const resYX: u32 = resX * (export_settings.resolution[1] + 2);
 
-    var vertex_inside: [*]u32 = @ptrCast([*]u32, @alignCast(@alignOf(u32), vertex_inside_buffer.mapped_memory));
-    var vertex_buffer_memory: [*]Vertex = @ptrCast([*]Vertex, @alignCast(@alignOf(Vertex), vertex_buffer.mapped_memory));
+    var vertex_inside: [*]u32 = @ptrCast(@alignCast(vertex_inside_buffer.allocation.mapped_memory));
+    var vertex_buffer_memory: [*]Vertex = @ptrCast(@alignCast(vertex_buffer.allocation.mapped_memory));
 
     const edge_count: u32 = getEdgeCount();
-    @memset(@ptrCast([*]u8, vertex_inside), 0, edge_count * @sizeOf(u32));
+    @memset(vertex_inside[0..edge_count], 0);
 
     var vertex_count: u32 = 0;
     var i: usize = 0;
@@ -310,7 +310,7 @@ fn writeToFilePadded2(writer: anytype, data0: []const u8, data1: []const u8, pad
 
 fn addNeighbour(neighbours: []u32, vertex: usize) void {
     neighbours[0] += 1;
-    neighbours[neighbours[0]] = @intCast(u32, vertex);
+    neighbours[neighbours[0]] = @intCast(vertex);
 }
 
 fn removeNeighbour(neighbours: []u32, vertex: u32) void {
@@ -327,9 +327,9 @@ fn removeNeighbour(neighbours: []u32, vertex: u32) void {
 }
 
 fn buildConnectivity(vertices: []Vertex, indices: []u32, vertex_neighbours: []u32, face_neighbours: []u32, vertex_boundary: []u32) void {
-    std.mem.set(u32, vertex_neighbours, 0);
-    std.mem.set(u32, face_neighbours, 0);
-    std.mem.set(u32, vertex_boundary, 0);
+    @memset(vertex_neighbours, 0);
+    @memset(face_neighbours, 0);
+    @memset(vertex_boundary, 0);
 
     var f: usize = 0;
     while (f < indices.len) : (f += 3) {
@@ -346,7 +346,7 @@ fn buildConnectivity(vertices: []Vertex, indices: []u32, vertex_neighbours: []u3
         addNeighbour(face_neighbours[v3 * 13 .. (v3 + 1) * 13], f);
     }
 
-    for (vertices) |_, i| {
+    for (vertices, 0..) |_, i| {
         var boundary: bool = false;
         var j: usize = 0;
         while (j < vertex_neighbours[i * 17]) : (j += 1) {
@@ -364,7 +364,7 @@ fn buildConnectivity(vertices: []Vertex, indices: []u32, vertex_neighbours: []u3
                 addNeighbour(vertex_neighbours[vj * 17 .. (vj + 1) * 17], i);
             }
         }
-        vertex_boundary[i / 32] ^= (-%@as(u32, @boolToInt(boundary)) ^ vertex_boundary[i / 32]) & (@as(u32, 1) << @intCast(u5, i % 32));
+        vertex_boundary[i / 32] ^= (-%@as(u32, @intFromBool(boundary)) ^ vertex_boundary[i / 32]) & (@as(u32, 1) << @intCast(i % 32));
     }
 }
 
@@ -447,7 +447,7 @@ fn flipEdges(vertices: []Vertex, indices: []u32, vertex_neighbours: []u32, face_
     var f1: u32 = undefined;
     var f2: u32 = undefined;
 
-    for (vertices) |_, i| {
+    for (vertices, 0..) |_, i| {
         const neighbours: u32 = vertex_neighbours[i * 17];
         if (valence(vertex_neighbours, i) > targetValence(vertex_boundary, i)) {
             var nj: u32 = 0;
@@ -489,9 +489,9 @@ fn smoothIterations(vertices: []Vertex, vertex_neighbours: []u32) void {
                 l += n.pos - vi.pos;
             }
 
-            l *= @splat(4, 1.0 / @intToFloat(f32, neighbours_count));
+            l *= @splat(1.0 / @as(f32, @floatFromInt(neighbours_count)));
             const dot: f32 = nm.Vec4.dot(l, vi.nor);
-            vo.pos = vi.pos + l - vi.nor * @splat(4, dot);
+            vo.pos = vi.pos + l - vi.nor * @as(nm.vec4, @splat(dot));
         }
 
         var temp: []Vertex = input;
@@ -604,15 +604,15 @@ fn export2gltf(vertices: []Vertex, indices: []u32) std.os.WriteError!void {
         \\
     ;
 
-    const indices_size: u32 = @intCast(u32, indices.len) * @sizeOf(u32);
-    const vertices_size: u32 = @intCast(u32, vertices.len) * @sizeOf(Vertex);
+    const indices_size: u32 = @as(u32, @intCast(indices.len)) * @sizeOf(u32);
+    const vertices_size: u32 = @as(u32, @intCast(vertices.len)) * @sizeOf(Vertex);
 
     var real_min_pos: nm.vec4 = vertices[0].pos;
     var real_max_pos: nm.vec4 = vertices[0].pos;
 
     for (vertices) |v| {
-        real_min_pos = @minimum(real_min_pos, v.pos);
-        real_max_pos = @maximum(real_max_pos, v.pos);
+        real_min_pos = @min(real_min_pos, v.pos);
+        real_max_pos = @max(real_max_pos, v.pos);
     }
 
     const json_chunk_data: []const u8 = std.fmt.allocPrint(nyan.app.allocator, gltf_json, .{
@@ -638,7 +638,7 @@ fn export2gltf(vertices: []Vertex, indices: []u32) std.os.WriteError!void {
     defer nyan.app.allocator.free(json_chunk_data);
 
     const json_chunk_type: u32 = 0x4E4F534A;
-    const json_chunk_length: u32 = @intCast(u32, json_chunk_data.len);
+    const json_chunk_length: u32 = @intCast(json_chunk_data.len);
     const json_chunk_padding: u32 = (4 - json_chunk_length % 4) % 4;
 
     const buffer_chunk_type: u32 = 0x004E4942;
@@ -670,22 +670,21 @@ fn export2gltf(vertices: []Vertex, indices: []u32) std.os.WriteError!void {
 
 fn exportToMesh() void {
     const buffer_usage_flags: nyan.vk.BufferUsageFlags = .{ .storage_buffer_bit = true };
-    const buffer_mem_flags: nyan.vk.MemoryPropertyFlags = .{ .host_visible_bit = true, .host_coherent_bit = true };
 
     const edge_count: u32 = getEdgeCount();
 
     var vertex_buffer: Buffer = undefined;
-    vertex_buffer.init(edge_count * @sizeOf(Vertex), buffer_usage_flags, buffer_mem_flags);
+    vertex_buffer.init(edge_count * @sizeOf(Vertex), buffer_usage_flags, .sequential);
     defer vertex_buffer.destroy();
 
     var vertex_inside_buffer: Buffer = undefined;
-    vertex_inside_buffer.init(edge_count * @sizeOf(u32), buffer_usage_flags, buffer_mem_flags);
+    vertex_inside_buffer.init(edge_count * @sizeOf(u32), buffer_usage_flags, .sequential);
     defer vertex_inside_buffer.destroy();
 
     var cell_size: nm.vec3 = export_settings.max_pos - export_settings.min_pos;
-    cell_size[0] /= @intToFloat(f32, export_settings.resolution[0]);
-    cell_size[1] /= @intToFloat(f32, export_settings.resolution[1]);
-    cell_size[2] /= @intToFloat(f32, export_settings.resolution[2]);
+    cell_size[0] /= @floatFromInt(export_settings.resolution[0]);
+    cell_size[1] /= @floatFromInt(export_settings.resolution[1]);
+    cell_size[2] /= @floatFromInt(export_settings.resolution[2]);
 
     const shader_buf: []const u8 = std.fmt.allocPrint(nyan.app.allocator, shader_export_compute_defines, .{
         export_settings.min_pos[0] - cell_size[0],
@@ -734,7 +733,7 @@ fn exportToMesh() void {
         pipeline_layout.vk_ref,
         0,
         1,
-        @ptrCast([*]const nyan.vk.DescriptorSet, &descriptor_set),
+        @ptrCast(&descriptor_set),
         0,
         undefined,
     );
@@ -759,7 +758,7 @@ fn exportToMesh() void {
     defer nyan.app.allocator.free(vertex_neighbours);
     var face_neighbours: []u32 = nyan.app.allocator.alloc(u32, vertices.len * 13) catch unreachable;
     defer nyan.app.allocator.free(face_neighbours);
-    var vertex_boundary: []u32 = nyan.app.allocator.alloc(u32, vertices.len / 32 + @boolToInt(vertices.len % 32 != 0)) catch unreachable;
+    var vertex_boundary: []u32 = nyan.app.allocator.alloc(u32, vertices.len / 32 + @intFromBool(vertices.len % 32 != 0)) catch unreachable;
     defer nyan.app.allocator.free(vertex_boundary);
     buildConnectivity(vertices, indices, vertex_neighbours, face_neighbours, vertex_boundary);
 
@@ -778,12 +777,12 @@ fn createDescriptorPool() nyan.vk.DescriptorPool {
 
     const descriptor_pool_info: nyan.vk.DescriptorPoolCreateInfo = .{
         .pool_size_count = 1,
-        .p_pool_sizes = @ptrCast([*]const nyan.vk.DescriptorPoolSize, &pool_size),
+        .p_pool_sizes = @ptrCast(&pool_size),
         .max_sets = 1,
         .flags = .{},
     };
 
-    return nyan.vkfn.d.createDescriptorPool(nyan.vkctxt.device, descriptor_pool_info, null) catch |err| {
+    return nyan.vkfn.d.createDescriptorPool(nyan.vkctxt.device, &descriptor_pool_info, null) catch |err| {
         nyan.printVulkanError("Couldn't create descriptor pool for mesh export", err);
         return undefined;
     };
@@ -809,11 +808,11 @@ fn createDescriptorSetLayout() nyan.vk.DescriptorSetLayout {
 
     const set_layout_create_info: nyan.vk.DescriptorSetLayoutCreateInfo = .{
         .binding_count = 2,
-        .p_bindings = @ptrCast([*]const nyan.vk.DescriptorSetLayoutBinding, &set_layout_bindings),
+        .p_bindings = @ptrCast(&set_layout_bindings),
         .flags = .{},
     };
 
-    return nyan.vkfn.d.createDescriptorSetLayout(nyan.vkctxt.device, set_layout_create_info, null) catch |err| {
+    return nyan.vkfn.d.createDescriptorSetLayout(nyan.vkctxt.device, &set_layout_create_info, null) catch |err| {
         nyan.printVulkanError("Can't create descriptor set layout for mesh export", err);
         return undefined;
     };
@@ -824,22 +823,22 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
 
     const descriptor_set_allocate_info: nyan.vk.DescriptorSetAllocateInfo = .{
         .descriptor_pool = descriptor_pool,
-        .p_set_layouts = @ptrCast([*]const nyan.vk.DescriptorSetLayout, &descriptor_set_layout),
+        .p_set_layouts = @ptrCast(&descriptor_set_layout),
         .descriptor_set_count = 1,
     };
 
-    nyan.vkfn.d.allocateDescriptorSets(nyan.vkctxt.device, descriptor_set_allocate_info, @ptrCast([*]nyan.vk.DescriptorSet, &descriptor_set)) catch |err| {
+    nyan.vkfn.d.allocateDescriptorSets(nyan.vkctxt.device, &descriptor_set_allocate_info, @ptrCast(&descriptor_set)) catch |err| {
         nyan.printVulkanError("Can't allocate descriptor set for mesh export", err);
     };
 
     const vrt_buffer_info: nyan.vk.DescriptorBufferInfo = .{
-        .buffer = vertex_buffer.buffer,
+        .buffer = vertex_buffer.vk_ref,
         .offset = 0,
         .range = nyan.vk.WHOLE_SIZE,
     };
 
     const vrt_index_buffer_info: nyan.vk.DescriptorBufferInfo = .{
-        .buffer = vertex_inside_buffer.buffer,
+        .buffer = vertex_inside_buffer.vk_ref,
         .offset = 0,
         .range = nyan.vk.WHOLE_SIZE,
     };
@@ -849,7 +848,7 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
             .dst_set = descriptor_set,
             .descriptor_type = .storage_buffer,
             .dst_binding = 0,
-            .p_buffer_info = @ptrCast([*]const nyan.vk.DescriptorBufferInfo, &vrt_buffer_info),
+            .p_buffer_info = @ptrCast(&vrt_buffer_info),
             .descriptor_count = 1,
             .p_image_info = undefined,
             .p_texel_buffer_view = undefined,
@@ -859,7 +858,7 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
             .dst_set = descriptor_set,
             .descriptor_type = .storage_buffer,
             .dst_binding = 1,
-            .p_buffer_info = @ptrCast([*]const nyan.vk.DescriptorBufferInfo, &vrt_index_buffer_info),
+            .p_buffer_info = @ptrCast(&vrt_index_buffer_info),
             .descriptor_count = 1,
             .p_image_info = undefined,
             .p_texel_buffer_view = undefined,
@@ -867,7 +866,7 @@ fn allocateDescriptorSet(descriptor_pool: nyan.vk.DescriptorPool, descriptor_set
         },
     };
 
-    nyan.vkfn.d.updateDescriptorSets(nyan.vkctxt.device, 2, @ptrCast([*]const nyan.vk.WriteDescriptorSet, &write_descriptor_set), 0, undefined);
+    nyan.vkfn.d.updateDescriptorSets(nyan.vkctxt.device, 2, @ptrCast(&write_descriptor_set), 0, undefined);
     return descriptor_set;
 }
 
@@ -887,13 +886,13 @@ fn createComputePipeline(pipeline_cache: *const nyan.PipelineCache, pipeline_lay
 pub fn drawExportGlbDialog() void {
     var close_modal: bool = true;
     if (nc.igBeginPopupModal("Export to GLB Mesh", &close_modal, nc.ImGuiWindowFlags_None)) {
-        _ = nc.igInputFloat3("Min Point", @ptrCast([*c]f32, &export_settings.min_pos), "%.3f", nc.ImGuiInputTextFlags_None);
-        _ = nc.igInputFloat3("Max Point", @ptrCast([*c]f32, &export_settings.max_pos), "%.3f", nc.ImGuiInputTextFlags_None);
+        _ = nc.igInputFloat3("Min Point", @ptrCast(&export_settings.min_pos), "%.3f", nc.ImGuiInputTextFlags_None);
+        _ = nc.igInputFloat3("Max Point", @ptrCast(&export_settings.max_pos), "%.3f", nc.ImGuiInputTextFlags_None);
         _ = nc.igInputScalarN("Resolution", nc.ImGuiDataType_U32, &export_settings.resolution, 3, null, null, "%u", nc.ImGuiInputTextFlags_None);
         _ = nc.igInputScalar("Precision Ray Steps", nc.ImGuiDataType_U32, &export_settings.precision_steps, null, null, "%u", nc.ImGuiInputTextFlags_None);
         _ = nc.igInputFloat("Precision", &export_settings.precision, 0.0, 0.0, "%.3f", nc.ImGuiInputTextFlags_None);
 
-        if (nc.igInputText("Path", @ptrCast([*c]u8, &selected_file_path), file_path_len, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
+        if (nc.igInputText("Path", @ptrCast(&selected_file_path), file_path_len, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
             exportToMesh();
             nc.igCloseCurrentPopup();
         }

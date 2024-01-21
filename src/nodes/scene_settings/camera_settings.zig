@@ -11,6 +11,7 @@ pub const CameraSettings: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
 
     .enter_command_fn = enterCommand,
 
@@ -68,9 +69,9 @@ const properties = [_]util.NodeProperty{
 pub fn drawProjectionProperty(self: *const NodeProperty, data: *[]u8) bool {
     const changed: bool = util.prop.drawEnumProperty(self, data);
     if (changed) {
-        var data_ptr: [*c]u32 = @ptrCast([*c]u32, @alignCast(@alignOf(u32), &data.*[self.offset]));
+        var data_ptr: [*c]u32 = @ptrCast(@alignCast(&data.*[self.offset]));
         const current_index: usize = data_ptr[0];
-        const projection: ProjectionType = @intToEnum(ProjectionType, current_index);
+        const projection: ProjectionType = @enumFromInt(current_index);
         for (Global.cameras.items) |c|
             c.setProjection(projection);
     }
@@ -78,7 +79,7 @@ pub fn drawProjectionProperty(self: *const NodeProperty, data: *[]u8) bool {
 }
 
 pub fn updateGlobalCameras(buffer: *[]u8) void {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     for (Global.cameras.items) |c|
         c.setProjection(data.projection);
@@ -100,7 +101,7 @@ fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, bu
     _ = iter;
     _ = mat_offset;
 
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     const format: []const u8 =
         \\#define CAMERA_NEAR {d:.5}
@@ -116,6 +117,6 @@ fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, bu
         data.far,
         util.std.math.tan(data.fov / 2.0 * (util.std.math.pi / 180.0)),
         data.steps,
-        @enumToInt(data.projection),
+        @intFromEnum(data.projection),
     }) catch unreachable;
 }

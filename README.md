@@ -7,7 +7,7 @@ uses [nyancore](https://github.com/Black-Cat/nyancore)
 
 ### Requirements
 
-* zig 0.9
+* zig 0.11
 * Vulkan SDK (for developing, optional)
 
 ### How to build?

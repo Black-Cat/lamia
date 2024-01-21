@@ -9,6 +9,7 @@ pub const Lambert: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
 
     .enter_command_fn = info.enter_command_fn,
 };

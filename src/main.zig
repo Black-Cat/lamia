@@ -9,7 +9,7 @@ const std = @import("std");
 fn setIcon(context: *anyopaque) void {
     _ = context;
 
-    nyan.app.set_icon(@embedFile("../icon.ico"));
+    nyan.app.set_icon(@embedFile("./icon.ico"));
 }
 
 fn setDefaultSettings() void {
@@ -18,7 +18,8 @@ fn setDefaultSettings() void {
 }
 
 pub fn main() !void {
-    const allocator: std.mem.Allocator = std.testing.allocator;
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator: std.mem.Allocator = gpa.allocator();
 
     var renderer: nyan.DefaultRenderer = undefined;
     renderer.init("Main Renderer", allocator);
@@ -34,16 +35,16 @@ pub fn main() !void {
     Global.init_cameras(allocator);
     defer Global.deinit_cameras();
 
-    const systems: []*nyan.System = &[_]*nyan.System{
+    nyan.initGlobalData(allocator);
+    defer nyan.deinitGlobalData();
+
+    var systems: [3]*nyan.System = [_]*nyan.System{
         &renderer.system,
         &ui.nyanui.system,
         &Global.file_watcher.system,
     };
 
-    nyan.initGlobalData(allocator);
-    defer nyan.deinitGlobalData();
-
-    nyan.app.init("lamia", allocator, systems);
+    nyan.app.init("lamia", allocator, &systems);
     defer nyan.app.deinit();
 
     setDefaultSettings();
@@ -52,12 +53,12 @@ pub fn main() !void {
     // There is also no adequate way to check if icon was set or not
 
     // Until res files are fixed (https://github.com/ziglang/zig/issues/6488) both windows and linux use this path
-    //if (builtin.target.os.tag == .linux)
-    nyan.app.delayed_tasks.append(.{
-        .task = setIcon,
-        .context = undefined,
-        .delay = 0.0001,
-    }) catch unreachable;
+    if (builtin.target.os.tag == .linux)
+        nyan.app.delayed_tasks.append(.{
+            .task = setIcon,
+            .context = undefined,
+            .delay = 0.0001,
+        }) catch unreachable;
 
     Global.main_scene.init();
     defer Global.main_scene.deinit();

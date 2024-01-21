@@ -88,7 +88,7 @@ pub const Materials = struct {
             self.drawMaterial(mat);
 
         if (nc.igBeginPopup("add_material_popup", nc.ImGuiWindowFlags_None)) {
-            for (node_collection.materials) |*mat_type| {
+            for (&node_collection.materials) |*mat_type| {
                 if (nc.igSelectable_Bool(mat_type.name.ptr, false, nc.ImGuiSelectableFlags_None, .{ .x = 0, .y = 0 }))
                     addMaterial(&Global.main_scene, mat_type);
             }

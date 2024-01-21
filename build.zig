@@ -6,10 +6,15 @@ const nyan_build = @import("nyancore/build.zig");
 const Builder = std.build.Builder;
 
 pub fn build(b: *Builder) void {
-    var lamia = b.addExecutable("lamia", "src/main.zig");
-
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
+    const optimize = b.standardOptimizeOption(.{});
+
+    var lamia = b.addExecutable(.{
+        .name = "lamia",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
 
     // As at the current version zig 0.9.1, zig build-exe res support is broken
     // Removed for now, untill fixed
@@ -44,20 +49,19 @@ pub fn build(b: *Builder) void {
 
     const vulkan_validation: bool = b.option(bool, "vulkan-validation", "Use vulkan validation layer, useful for vulkan development. Needs Vulkan SDK") orelse false;
     const enable_tracing: bool = b.option(bool, "enable-tracing", "Enable tracing with tracy v0.8") orelse false;
+    const panic_on_all_errors: bool = b.option(bool, "panic-on-all-errors", "Panic on all errors") orelse false;
 
-    lamia.setTarget(target);
-    lamia.setBuildMode(mode);
     lamia.linkSystemLibrary("c");
 
-    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation, enable_tracing, true);
+    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation, enable_tracing, panic_on_all_errors, true);
 
     lamia.linkLibrary(nyancoreLib);
     lamia.step.dependOn(&nyancoreLib.step);
 
-    lamia.install();
+    b.installArtifact(lamia);
 
     const run_target = b.step("run", "Run lamia");
-    const run = lamia.run();
+    const run = b.addRunArtifact(lamia);
 
     if (b.args) |args|
         run.addArgs(args);

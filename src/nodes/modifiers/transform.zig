@@ -9,6 +9,7 @@ pub const Transform: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .sphere_bound_fn = info.sphere_bound_fn,
@@ -51,11 +52,11 @@ fn editCallback(buffer: *[]u8) void {
 
 fn gizmoEditCallback(pos: *util.nm.vec3) void {
     var data: *Data = @fieldParentPtr(Data, "translation", pos);
-    editCallback(@ptrCast(*[]u8, &data));
+    editCallback(@ptrCast(&data));
 }
 
 fn modifyGizmoPoints(buffer: *[]u8, points: []util.nm.vec4) void {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     const inv: util.nm.mat4x4 = util.nm.Mat4x4.inverse(data.transform_matrix);
 
@@ -64,7 +65,7 @@ fn modifyGizmoPoints(buffer: *[]u8, points: []util.nm.vec4) void {
 }
 
 fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     gizmos_storage.translation_gizmos.append(.{ .pos = &data.translation, .editCallback = gizmoEditCallback }) catch unreachable;
 }

@@ -41,11 +41,13 @@ pub const Monitor = struct {
         const open: bool = std.mem.eql(u8, nyan.app.config.map.get(config_key_open) orelse "1", "1");
         self.window.open = open;
     }
+
     fn windowDeinit(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *Monitor = @fieldParentPtr(Monitor, "window", window);
         nyan.app.config.map.put(config_key_open, if (self.window.open) "1" else "0") catch unreachable;
     }
+
     fn windowDraw(widget: *Widget) void {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *Monitor = @fieldParentPtr(Monitor, "window", window);
@@ -65,8 +67,8 @@ pub const Monitor = struct {
         self.frame_times[self.current_frame] = frame_time;
 
         const graph_size: nc.ImVec2 = .{ .x = 0, .y = 80 };
-        nc.igPlotLines_FloatPtr("", &self.frame_times, frame_time_count, @intCast(c_int, self.current_frame), "Frame Times", self.frame_time_min, self.frame_time_max, graph_size, @sizeOf(f32));
-        nc.igText("%.3f ms/frame (%.1f FPS)", @floatCast(f64, frame_time), @floatCast(f64, framerate));
+        nc.igPlotLines_FloatPtr("", &self.frame_times, frame_time_count, @intCast(self.current_frame), "Frame Times", self.frame_time_min, self.frame_time_max, graph_size, @sizeOf(f32));
+        nc.igText("%.3f ms/frame (%.1f FPS)", @as(f64, @floatCast(frame_time)), @as(f64, @floatCast(framerate)));
 
         self.current_frame = (self.current_frame + 1) % frame_time_count;
 

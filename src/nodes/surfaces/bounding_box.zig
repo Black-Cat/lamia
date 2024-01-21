@@ -9,6 +9,7 @@ pub const BoundingBox: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .append_mat_check_fn = info.append_mat_check_fn,
@@ -47,16 +48,16 @@ fn initData(buffer: *[]u8) void {
 }
 
 fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     var i: usize = 0;
     while (i < 3) : (i += 1) {
         const gizmo: util.SizeGizmo = .{
             .size = &data.size[i],
             .dir = .{
-                @intToFloat(f32, @boolToInt(i == 0)),
-                @intToFloat(f32, @boolToInt(i == 1)),
-                @intToFloat(f32, @boolToInt(i == 2)),
+                @floatFromInt(@intFromBool(i == 0)),
+                @floatFromInt(@intFromBool(i == 1)),
+                @floatFromInt(@intFromBool(i == 2)),
             },
             .offset_dist = null,
             .offset_type = .direction,
@@ -73,7 +74,7 @@ fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
         var dir: util.nm.vec3 = undefined;
         var d: usize = 0;
         while (d < 3) : (d += 1)
-            dir[d] = @intToFloat(f32, @boolToInt(i % 3 == d) * (@intCast(i32, @boolToInt(i < 6)) * 2 - 1));
+            dir[d] = @floatFromInt(@as(i32, @intFromBool(i % 3 == d)) * (@as(i32, @intFromBool(i < 6)) * 2 - 1));
 
         const gizmo: util.SizeGizmo = .{
             .size = &data.extent,

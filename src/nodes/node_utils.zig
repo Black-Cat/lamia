@@ -16,5 +16,14 @@ pub const prop = @import("node_property.zig");
 pub const NodeProperty = prop.NodeProperty;
 
 pub fn setBuffer(buffer: []u8, data: []const u8) void {
-    @memcpy(@ptrCast([*]u8, &buffer[0]), data.ptr, data.len + 1);
+    @memcpy(buffer[0 .. data.len + 1], data.ptr);
+}
+
+pub fn defaultDeinit(comptime DT: type) fn (buffer: *[]u8) void {
+    return struct {
+        fn f(buffer: *[]u8) void {
+            const data: *DT = @ptrCast(@alignCast(buffer.ptr));
+            nyan.app.allocator.destroy(data);
+        }
+    }.f;
 }

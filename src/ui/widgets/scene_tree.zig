@@ -125,7 +125,7 @@ pub const SceneTree = struct {
 
         var open_modal: bool = true;
         if (nc.igBeginPopupModal("save_scene_popup", &open_modal, nc.ImGuiWindowFlags_None)) {
-            if (nc.igInputText("Path", @ptrCast([*c]u8, &self.selected_file_path), FILE_PATH_LEN, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
+            if (nc.igInputText("Path", @ptrCast(&self.selected_file_path), FILE_PATH_LEN, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
                 self.saveScene();
                 nc.igCloseCurrentPopup();
             }
@@ -139,7 +139,7 @@ pub const SceneTree = struct {
             nc.igEndPopup();
         }
         if (nc.igBeginPopupModal("load_scene_popup", &open_modal, nc.ImGuiWindowFlags_None)) {
-            if (nc.igInputText("Path", @ptrCast([*c]u8, &self.selected_file_path), FILE_PATH_LEN, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
+            if (nc.igInputText("Path", @ptrCast(&self.selected_file_path), FILE_PATH_LEN, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
                 self.loadScene();
                 nc.igCloseCurrentPopup();
             }
@@ -200,7 +200,7 @@ pub const SceneTree = struct {
             self.clicked_node = node;
 
         if (opened) {
-            for (node.children.items) |child, i| {
+            for (node.children.items, 0..) |child, i| {
                 self.sceneNodeReorderBlock(node, i);
 
                 if (child.childrenCount() > 0) {
@@ -220,7 +220,7 @@ pub const SceneTree = struct {
     }
 
     fn drawSceneNodeChildren(self: *SceneTree, node: *SceneNode) void {
-        for (node.children.items) |child, i| {
+        for (node.children.items, 0..) |child, i| {
             self.sceneNodeReorderBlock(node, i);
             if (child.childrenCount() > 0) {
                 self.drawSceneNode(child);
@@ -282,8 +282,8 @@ pub const SceneTree = struct {
 
     fn sceneNodeDragDrop(self: *SceneTree, node: *SceneNode) void {
         if (nc.igBeginDragDropSource(nc.ImGuiDragDropFlags_SourceNoDisableHover | nc.ImGuiDragDropFlags_SourceNoHoldToOpenOthers)) {
-            nc.igText("Moving \"%s\"", node.name);
-            _ = nc.igSetDragDropPayload("DND_SCENE_NODE", @ptrCast(*const anyopaque, &node), @sizeOf(*SceneNode), nc.ImGuiCond_Once);
+            nc.igText("Moving \"%s\"", &node.name);
+            _ = nc.igSetDragDropPayload("DND_SCENE_NODE", @ptrCast(&node), @sizeOf(*SceneNode), nc.ImGuiCond_Once);
             nc.igEndDragDropSource();
         }
 
@@ -293,7 +293,7 @@ pub const SceneTree = struct {
         if (self.parent_insert == null and nc.igBeginDragDropTarget()) {
             const payload: ?*const nc.ImGuiPayload = nc.igAcceptDragDropPayload("DND_SCENE_NODE", 0);
             if (payload) |p| {
-                self.drag_from = @ptrCast(**SceneNode, @alignCast(@alignOf(**SceneNode), p.Data)).*;
+                self.drag_from = @as(**SceneNode, @ptrCast(@alignCast(p.Data))).*;
                 self.drop_to = node;
             }
             nc.igEndDragDropTarget();
@@ -303,14 +303,14 @@ pub const SceneTree = struct {
     fn sceneNodeReorderBlock(self: *SceneTree, parent: *SceneNode, after_index: usize) void {
         const payload: ?*const nc.ImGuiPayload = nc.igAcceptReorderDropPayload("DND_SCENE_NODE", 0);
         if (payload) |p| {
-            self.drag_from = @ptrCast(**SceneNode, @alignCast(@alignOf(**SceneNode), p.Data)).*;
+            self.drag_from = @as(**SceneNode, @ptrCast(@alignCast(p.Data))).*;
             self.parent_insert = parent;
             self.parent_insert_index = after_index + 1;
         }
     }
 
     fn cleanSelectedPath(self: *SceneTree) void {
-        @memcpy(@ptrCast([*]u8, &self.selected_file_path[0]), "", 1);
+        self.selected_file_path[0] = 0;
     }
 
     fn saveScene(self: *SceneTree) void {

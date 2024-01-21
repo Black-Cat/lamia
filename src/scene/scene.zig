@@ -13,6 +13,10 @@ fn root_init(buffer: *[]u8) void {
     buffer.* = nyan.app.allocator.alloc(u8, 0) catch unreachable;
 }
 
+fn root_deinit(buffer: *[]u8) void {
+    _ = buffer;
+}
+
 const root_properties = [_]NodeProperty{};
 
 const EndOfStreamError = error{
@@ -26,6 +30,7 @@ pub const RootType: NodeType = .{
     .properties = root_properties[0..],
 
     .init_data_fn = root_init,
+    .deinit_fn = root_deinit,
 };
 
 pub const Scene = struct {
@@ -52,7 +57,7 @@ pub const Scene = struct {
     pub fn init(self: *Scene) void {
         self.createRoots();
 
-        for (node_collection.scene_settings) |*node_type| {
+        for (&node_collection.scene_settings) |*node_type| {
             var node: *SceneNode = self.settings.add();
             node.init(node_type, node_type.name, &self.settings);
         }
@@ -92,21 +97,21 @@ pub const Scene = struct {
     fn recursiveSave(node: *SceneNode, writer: anytype) std.os.WriteError!void {
         const name: []const u8 = std.mem.sliceTo(&node.name, 0);
 
-        try writer.writeIntBig(u32, @intCast(u32, name.len));
+        try writer.writeIntBig(u32, @as(u32, @intCast(name.len)));
         try writer.writeAll(name);
 
-        try writer.writeIntBig(u32, @intCast(u32, node.node_type.name.len));
+        try writer.writeIntBig(u32, @as(u32, @intCast(node.node_type.name.len)));
         try writer.writeAll(node.node_type.name);
 
         try writer.writeAll(node.buffer);
 
-        try writer.writeIntBig(u32, @intCast(u32, node.childrenCount()));
+        try writer.writeIntBig(u32, @as(u32, @intCast(node.childrenCount())));
         for (node.children.items) |child|
             try recursiveSave(child, writer);
     }
 
     fn saveRoot(root: *SceneNode, writer: anytype) std.os.WriteError!void {
-        try writer.writeIntBig(u32, @intCast(u32, root.childrenCount()));
+        try writer.writeIntBig(u32, @as(u32, @intCast(root.childrenCount())));
         for (root.children.items) |child|
             try recursiveSave(child, writer);
     }
@@ -168,7 +173,7 @@ pub const Scene = struct {
     // Doesn't recompile scene shaders!!!
     pub fn load(self: *Scene, path: []const u8) !void {
         const cwd: std.fs.Dir = std.fs.cwd();
-        const file: std.fs.File = try cwd.openFile(path, .{ .read = true });
+        const file: std.fs.File = try cwd.openFile(path, .{ .mode = .read_only });
         defer file.close();
 
         self.materials.deinit();
@@ -192,11 +197,16 @@ pub const Scene = struct {
 
         self.shader = scene2shader(self, &self.settings);
 
-        nyan.global_render_graph.changeResourceBetweenFrames(&self.rg_resource, rebuildRenderGraph);
+        nyan.global_render_graph.changeResourceBetweenFrames(&self.rg_resource, recreatePipeline);
     }
 
-    fn rebuildRenderGraph(res: *nyan.RGResource) void {
-        _ = res;
-        nyan.global_render_graph.needs_rebuilding = true;
+    fn recreatePipeline(res: *nyan.RGResource) void {
+        const self: *Scene = @fieldParentPtr(Scene, "rg_resource", res);
+
+        for (self.rg_resource.readers.items) |rg_pass| {
+            const render_pass = @fieldParentPtr(nyan.ScreenRenderPass(nyan.ViewportTexture), "rg_pass", rg_pass);
+            render_pass.frag_shader = &self.shader.?;
+            render_pass.recreatePipeline();
+        }
     }
 };

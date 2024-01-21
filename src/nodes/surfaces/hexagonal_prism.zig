@@ -9,6 +9,7 @@ pub const HexagonalPrism: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .append_mat_check_fn = info.append_mat_check_fn,
@@ -47,15 +48,15 @@ fn initData(buffer: *[]u8) void {
 }
 
 fn appendGizmos(buffer: *[]u8, gizmos_storage: *util.GizmoStorage) void {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     var i: usize = 0;
     while (i < 2) : (i += 1) {
         const gizmo: util.SizeGizmo = .{
             .size = if (i == 0) &data.radius else &data.height,
             .dir = .{
-                @intToFloat(f32, @boolToInt(i == 0)),
-                @intToFloat(f32, @boolToInt(i == 1)),
+                @floatFromInt(@intFromBool(i == 0)),
+                @floatFromInt(@intFromBool(i == 1)),
                 0.0,
             },
             .offset_dist = null,

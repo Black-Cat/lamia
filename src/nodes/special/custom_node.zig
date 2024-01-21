@@ -9,6 +9,7 @@ pub const CustomNode: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .sphere_bound_fn = info.sphere_bound_fn,
@@ -20,7 +21,7 @@ const properties = [_]util.NodeProperty{
     .{
         .drawFn = util.prop.drawHelpProperty,
         .offset = undefined,
-        .name = 
+        .name =
         \\Point variables:
         \\    vec3 cpin - Custom Point Input
         \\    vec3 cpout - Custom Point Output
@@ -35,7 +36,7 @@ const properties = [_]util.NodeProperty{
     .{
         .drawFn = util.prop.drawHelpProperty,
         .offset = undefined,
-        .name = 
+        .name =
         \\Distance variables:
         \\    vec3 cpin - Custom Point Input
         \\    float cdin - Custom Distance Input

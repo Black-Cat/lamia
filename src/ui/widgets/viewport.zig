@@ -37,8 +37,8 @@ pub const Viewport = struct {
     viewport_texture: nyan.ViewportTexture,
     render_pass: nyan.ScreenRenderPass(nyan.ViewportTexture),
 
-    descriptor_pool: nyan.vk.DescriptorPool,
-    descriptor_sets: []nyan.vk.DescriptorSet,
+    descriptor_pool: nyan.DescriptorPool,
+    descriptor_sets: []nyan.DescriptorSets,
 
     frag_push_const_block: FragPushConstBlock,
 
@@ -74,9 +74,11 @@ pub const Viewport = struct {
     }
 
     pub fn deinit(self: *Viewport) void {
-        for (Global.cameras.items) |c, i| {
-            if (c == *self.camera)
+        for (Global.cameras.items, 0..) |c, i| {
+            if (c == *self.camera) {
                 _ = Global.cameras.swapRemove(i);
+                break;
+            }
         }
     }
 
@@ -87,10 +89,11 @@ pub const Viewport = struct {
         const image_format: nyan.vk.Format = nyan.global_render_graph.final_swapchain.image_format;
         self.viewport_texture.init("Viewport Texture", nyan.global_render_graph.in_flight, 128, 128, image_format, nyan.app.allocator);
         self.viewport_texture.alloc();
-        nyan.global_render_graph.addViewportTexture(&self.viewport_texture);
+
+        nyan.global_render_graph.addResource(&self.viewport_texture, "Viewport Texture");
 
         self.createDescriptorPool();
-        self.descriptor_sets = nyan.app.allocator.alloc(nyan.vk.DescriptorSet, nyan.global_render_graph.in_flight) catch unreachable;
+        self.descriptor_sets = nyan.app.allocator.alloc(nyan.DescriptorSets, nyan.global_render_graph.in_flight) catch unreachable;
         self.allocateDescriptorSets();
         createDescriptors(&self.viewport_texture.rg_resource);
 
@@ -104,11 +107,7 @@ pub const Viewport = struct {
 
         self.render_pass.rg_pass.final_layout = .shader_read_only_optimal;
 
-        Global.main_scene.rg_resource.registerOnChangeCallback(
-            &self.render_pass.rg_pass,
-            nyan.ScreenRenderPass(nyan.ViewportTexture).recreatePipelineOnShaderChange,
-        );
-
+        self.render_pass.rg_pass.appendReadResource(&Global.main_scene.rg_resource);
         self.render_pass.rg_pass.appendWriteResource(&self.viewport_texture.rg_resource);
         self.render_pass.rg_pass.initFn(&self.render_pass.rg_pass);
         nyan.global_render_graph.passes.append(&self.render_pass.rg_pass) catch unreachable;
@@ -120,8 +119,11 @@ pub const Viewport = struct {
 
         self.render_pass.deinit();
 
-        nyan.vkfn.d.destroyDescriptorPool(nyan.vkctxt.device, self.descriptor_pool, null);
+        self.descriptor_pool.deinit();
         self.viewport_texture.deinit();
+
+        for (self.descriptor_sets) |*ds|
+            ds.deinit();
 
         nyan.app.allocator.free(self.descriptor_sets);
     }
@@ -151,8 +153,8 @@ pub const Viewport = struct {
         var window_pos: nc.ImVec2 = undefined;
         nc.igGetWindowPos(&window_pos);
 
-        const cur_width: u32 = @floatToInt(u32, @round(max_pos.x - min_pos.x));
-        var cur_height: u32 = @floatToInt(u32, @round(max_pos.y - min_pos.y));
+        const cur_width: u32 = @intFromFloat(@round(max_pos.x - min_pos.x));
+        var cur_height: u32 = @intFromFloat(@round(max_pos.y - min_pos.y));
 
         if (nc.igButton(Export2dPopup.name, .{ .x = 0, .y = 0 }))
             self.export2dPopup.init(&self.camera, self.viewport_texture.extent.width, self.viewport_texture.extent.height, &self.frag_push_const_block);
@@ -162,7 +164,7 @@ pub const Viewport = struct {
         nc.igGetItemRectMin(&toolbar_min);
         nc.igGetItemRectMax(&toolbar_max);
 
-        const toolbar_height: u32 = @floatToInt(u32, toolbar_max.y) - @floatToInt(u32, toolbar_min.y) + @floatToInt(u32, nc.igGetStyle().*.ItemSpacing.y);
+        const toolbar_height: u32 = @as(u32, @intFromFloat(toolbar_max.y)) - @as(u32, @intFromFloat(toolbar_min.y)) + @as(u32, @intFromFloat(nc.igGetStyle().*.ItemSpacing.y));
         cur_height -= toolbar_height;
 
         nc.igSameLine(0.0, -1.0);
@@ -188,9 +190,9 @@ pub const Viewport = struct {
             nyan.global_render_graph.changeResourceBetweenFrames(&self.viewport_texture.rg_resource, createDescriptors);
         }
 
-        const size: nc.ImVec2 = .{ .x = max_pos.x - min_pos.x, .y = @intToFloat(f32, cur_height) };
+        const size: nc.ImVec2 = .{ .x = max_pos.x - min_pos.x, .y = @floatFromInt(cur_height) };
         nc.igImage(
-            @ptrCast(*anyopaque, &self.descriptor_sets[nyan.global_render_graph.frame_index]),
+            @ptrCast(&self.descriptor_sets[nyan.global_render_graph.frame_index]),
             size,
             .{ .x = 0, .y = 0 },
             .{ .x = 1, .y = 1 },
@@ -204,7 +206,7 @@ pub const Viewport = struct {
                 self.gizmo_storage,
                 &self.gizmo_interaction,
                 &self.camera,
-                .{ .x = window_pos.x + min_pos.x, .y = window_pos.y + min_pos.y + @intToFloat(f32, toolbar_height) },
+                .{ .x = window_pos.x + min_pos.x, .y = window_pos.y + min_pos.y + @as(f32, @floatFromInt(toolbar_height)) },
                 size,
             );
             self.updatePushConstBlock();
@@ -247,58 +249,26 @@ pub const Viewport = struct {
             .descriptor_count = nyan.global_render_graph.in_flight,
         };
 
-        const descriptor_pool_info: nyan.vk.DescriptorPoolCreateInfo = .{
-            .pool_size_count = 1,
-            .p_pool_sizes = @ptrCast([*]const nyan.vk.DescriptorPoolSize, &pool_size),
-            .max_sets = nyan.global_render_graph.in_flight,
-            .flags = .{},
-        };
-
-        self.descriptor_pool = nyan.vkfn.d.createDescriptorPool(nyan.vkctxt.device, descriptor_pool_info, null) catch |err| {
-            nyan.printVulkanError("Couldn't create descriptor pool for viewport", err);
-            return;
-        };
+        self.descriptor_pool.init(&.{pool_size}, nyan.global_render_graph.in_flight);
     }
 
     fn allocateDescriptorSets(self: *Viewport) void {
-        for (self.descriptor_sets) |*ds| {
-            const descriptor_set_allocate_info: nyan.vk.DescriptorSetAllocateInfo = .{
-                .descriptor_pool = self.descriptor_pool,
-                .p_set_layouts = @ptrCast([*]const nyan.vk.DescriptorSetLayout, &self.nyanui.vulkan_context.descriptor_set_layout),
-                .descriptor_set_count = 1,
-            };
-
-            nyan.vkfn.d.allocateDescriptorSets(nyan.vkctxt.device, descriptor_set_allocate_info, @ptrCast([*]nyan.vk.DescriptorSet, ds)) catch |err| {
-                nyan.printVulkanError("Can't allocate descriptor set for viewport", err);
-                return;
-            };
-        }
+        for (self.descriptor_sets) |*ds|
+            ds.init(&self.descriptor_pool, &.{self.nyanui.vulkan_context.descriptor_set_layout.vk_ref}, 1);
     }
 
     fn createDescriptors(viewportTextureRes: *nyan.RGResource) void {
         const viewport_texture: *nyan.ViewportTexture = @fieldParentPtr(nyan.ViewportTexture, "rg_resource", viewportTextureRes);
         const self: *Viewport = @fieldParentPtr(Viewport, "viewport_texture", viewport_texture);
 
-        for (viewport_texture.textures) |tex, ind| {
+        for (viewport_texture.textures, self.descriptor_sets) |tex, *ds| {
             const descriptor_image_info: nyan.vk.DescriptorImageInfo = .{
                 .sampler = tex.sampler,
                 .image_view = tex.view,
                 .image_layout = .shader_read_only_optimal,
             };
 
-            const write_descriptor_set: nyan.vk.WriteDescriptorSet = .{
-                .dst_set = self.descriptor_sets[ind],
-                .descriptor_type = .combined_image_sampler,
-                .dst_binding = 0,
-                .p_image_info = @ptrCast([*]const nyan.vk.DescriptorImageInfo, &descriptor_image_info),
-                .descriptor_count = 1,
-
-                .p_buffer_info = undefined,
-                .p_texel_buffer_view = undefined,
-                .dst_array_element = 0,
-            };
-
-            nyan.vkfn.d.updateDescriptorSets(nyan.vkctxt.device, 1, @ptrCast([*]const nyan.vk.WriteDescriptorSet, &write_descriptor_set), 0, undefined);
+            ds.write(0, &.{descriptor_image_info});
         }
     }
 };

@@ -10,6 +10,7 @@ pub const CustomMaterial: util.NodeType = .{
 
     .init_data_fn = initData,
     .enter_command_fn = info.enter_command_fn,
+    .deinit_fn = util.defaultDeinit(Data),
 };
 
 const Data = util.nsdf.CustomMaterial.Data;
@@ -18,7 +19,7 @@ const properties = [_]util.NodeProperty{
     .{
         .drawFn = util.prop.drawHelpProperty,
         .offset = undefined,
-        .name = 
+        .name =
         \\Values:
         \\    in vec3 l - Light Direction
         \\    in vec3 n - Normal

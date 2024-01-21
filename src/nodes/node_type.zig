@@ -21,16 +21,15 @@ pub const NodeType = struct {
 
     properties: []const NodeProperty,
 
-    init_data_fn: fn (buffer: *[]u8) void,
+    init_data_fn: *const fn (buffer: *[]u8) void,
 
     has_edit_callback: bool = false,
-    edit_callback: fn (buffer: *[]u8) void = undefined,
+    edit_callback: *const fn (buffer: *[]u8) void = undefined,
 
-    has_deinit: bool = false,
-    deinit_fn: fn (buffer: *[]u8) void = undefined,
+    deinit_fn: *const fn (buffer: *[]u8) void,
 
     has_on_load: bool = false,
-    on_load_fn: fn (buffer: *[]u8) void = undefined,
+    on_load_fn: *const fn (buffer: *[]u8) void = undefined,
 
     external: bool = false, // Used only for File Scene Node
 
@@ -39,9 +38,9 @@ pub const NodeType = struct {
     append_mat_check_fn: nsdf.AppendMatCheckFn = nsdf.appendNoMatCheck,
     sphere_bound_fn: nsdf.SphereBoundFn = undefined,
 
-    appendGizmosFn: fn (buffer: *[]u8, gizmo_storage: *GizmoStorage) void = appendNoGizmos,
+    appendGizmosFn: *const fn (buffer: *[]u8, gizmo_storage: *GizmoStorage) void = appendNoGizmos,
 
-    modifyGizmoPointsFn: fn (buffer: *[]u8, points: []nm.vec4) void = dontModifyGizmos,
+    modifyGizmoPointsFn: *const fn (buffer: *[]u8, points: []nm.vec4) void = dontModifyGizmos,
 
     min_child_count: usize = 0,
     max_child_count: usize = 1,

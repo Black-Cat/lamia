@@ -36,8 +36,8 @@ pub const UI = struct {
     dockspace: nyan.Widgets.DockSpace,
     windows: [5]*nyan.Widgets.Window,
 
-    nyanui_system_init_fn: fn (system: *nyan.System, app: *nyan.Application) void,
-    nyanui_system_deinit_fn: fn (system: *nyan.System) void,
+    nyanui_system_init_fn: *const fn (system: *nyan.System, app: *nyan.Application) void,
+    nyanui_system_deinit_fn: *const fn (system: *nyan.System) void,
 
     console: Console,
     inspector: Inspector,

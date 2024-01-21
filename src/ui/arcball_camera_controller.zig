@@ -66,12 +66,12 @@ pub const ArcballCameraController = struct {
             old_forward = nm.Vec3.rotate(old_forward, dir.y, old_right);
             self.camera.position = self.camera.target + old_forward;
         } else if (self.state == .panning) {
-            var offset: nm.vec3 = self.camera.up * @splat(3, dir.y);
+            var offset: nm.vec3 = self.camera.up * @as(nm.vec3, @splat(dir.y));
 
             const forward: nm.vec3 = self.camera.position - self.camera.target;
 
             var right: nm.vec3 = nm.Vec3.cross(forward, self.camera.up);
-            right = nm.Vec3.normalize(right) * @splat(3, -dir.x);
+            right = nm.Vec3.normalize(right) * @as(nm.vec3, @splat(-dir.x));
 
             offset += right;
 
@@ -82,7 +82,7 @@ pub const ArcballCameraController = struct {
         } else if (self.state == .dolly_zooming) {
             var forward: nm.vec3 = self.camera.target - self.camera.position;
             forward = nm.Vec3.normalize(forward);
-            forward *= @splat(3, -dir.y);
+            forward *= @splat(-dir.y);
             self.camera.target += forward;
             self.camera.position += forward;
         }

@@ -34,14 +34,11 @@ pub const SceneNode = struct {
         self.children.clearAndFree();
         self.children.deinit();
 
-        if (self.node_type.has_deinit)
-            self.node_type.deinit_fn(&self.buffer);
-
-        nyan.app.allocator.free(self.buffer);
+        self.node_type.deinit_fn(&self.buffer);
     }
 
     pub fn setName(self: *SceneNode, name: []const u8) void {
-        @memcpy(@ptrCast([*]u8, &self.name[0]), name.ptr, name.len + 1);
+        @memcpy(self.name[0 .. name.len + 1], name.ptr);
     }
 
     pub fn add(self: *SceneNode) *SceneNode {
@@ -56,7 +53,7 @@ pub const SceneNode = struct {
     }
 
     pub fn removeChild(self: *SceneNode, node: *SceneNode) usize {
-        const ind: usize = for (self.children.items) |child, i| {
+        const ind: usize = for (self.children.items, 0..) |child, i| {
             if (child == node) break i;
         } else unreachable;
         _ = self.children.orderedRemove(ind);

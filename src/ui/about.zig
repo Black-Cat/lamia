@@ -13,9 +13,8 @@ fn hyperlinkButton(link: [:0]const u8) void {
     if (nc.igButton(link, .{ .x = 0.0, .y = 0.0 })) {
         var args = std.ArrayList([]const u8).init(nyan.app.allocator);
         args.appendSlice(&[_][]const u8{ open_link_command, link }) catch unreachable;
-        const child = std.ChildProcess.init(args.items, nyan.app.allocator) catch unreachable;
+        var child = std.ChildProcess.init(args.items, nyan.app.allocator);
         _ = child.spawnAndWait() catch unreachable;
-        child.deinit();
         args.deinit();
     }
 }

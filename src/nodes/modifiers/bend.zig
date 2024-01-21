@@ -9,6 +9,7 @@ pub const Bend: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .sphere_bound_fn = info.sphere_bound_fn,
@@ -36,7 +37,7 @@ fn initData(buffer: *[]u8) void {
 }
 
 fn modifyGizmoPoints(buffer: *[]u8, points: []util.nm.vec4) void {
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     const k: f32 = data.power;
 

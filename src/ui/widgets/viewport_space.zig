@@ -56,7 +56,7 @@ pub const ViewportSpace = struct {
         self.viewports[1].init("Viewport 1", &self.viewport_window_class, self.nyanui, self.gizmo_storage);
         self.viewports[2].init("Viewport 2", &self.viewport_window_class, self.nyanui, self.gizmo_storage);
 
-        for (self.viewports) |*v|
+        for (&self.viewports) |*v|
             v.window.widget.init(&v.window.widget);
     }
 
@@ -64,7 +64,7 @@ pub const ViewportSpace = struct {
         const window: *Window = @fieldParentPtr(Window, "widget", widget);
         const self: *ViewportSpace = @fieldParentPtr(ViewportSpace, "window", window);
 
-        for (self.viewports) |*v|
+        for (&self.viewports) |*v|
             v.window.widget.deinit(&v.window.widget);
     }
 
@@ -96,7 +96,7 @@ pub const ViewportSpace = struct {
 
         nc.igDockSpace(self.dockspace_id, .{ .x = 0, .y = 0 }, nc.ImGuiDockNodeFlags_None, &self.viewport_window_class);
 
-        for (self.viewports) |*v|
+        for (&self.viewports) |*v|
             v.window.widget.draw(&v.window.widget);
 
         nc.igEnd();

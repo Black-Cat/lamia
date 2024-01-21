@@ -86,8 +86,8 @@ const NodeKV = struct {
 
 fn collectionToKV(comptime collection: []const NodeType) []NodeKV {
     var kvs = [1]NodeKV{undefined} ** collection.len;
-    for (collection) |*node_type, i|
-        kvs[i] = .{ .@"0" = node_type.name, .@"1" = node_type };
+    for (collection, &kvs) |*node_type, *kvsi|
+        kvsi.* = .{ .@"0" = node_type.name, .@"1" = node_type };
     return kvs[0..];
 }
 

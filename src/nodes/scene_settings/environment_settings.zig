@@ -7,6 +7,7 @@ pub const EnvironmentSettings: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
 
     .enter_command_fn = enterCommand,
 };
@@ -49,7 +50,7 @@ fn enterCommand(ctxt: *util.IterationContext, iter: usize, mat_offset: usize, bu
     _ = iter;
     _ = mat_offset;
 
-    const data: *Data = @ptrCast(*Data, @alignCast(@alignOf(*Data), buffer.ptr));
+    const data: *Data = @ptrCast(@alignCast(buffer.ptr));
 
     const format: []const u8 =
         \\#define ENVIRONMENT_BACKGROUND_COLOR vec3({d:.5},{d:.5},{d:.5})

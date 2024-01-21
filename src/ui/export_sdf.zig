@@ -14,7 +14,7 @@ fn exportSdf() void {
 pub fn drawExportSdfDialog() void {
     var close_modal: bool = true;
     if (nc.igBeginPopupModal("Export to NyanSDF", &close_modal, nc.ImGuiWindowFlags_None)) {
-        if (nc.igInputText("Path", @ptrCast([*c]u8, &selected_file_path), file_path_len, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
+        if (nc.igInputText("Path", @ptrCast(&selected_file_path), file_path_len, nc.ImGuiInputTextFlags_EnterReturnsTrue, null, null)) {
             exportSdf();
             nc.igCloseCurrentPopup();
         }

@@ -9,6 +9,7 @@ pub const InfiniteCylinder: util.NodeType = .{
     .properties = properties[0..],
 
     .init_data_fn = initData,
+    .deinit_fn = util.defaultDeinit(Data),
     .enter_command_fn = info.enter_command_fn,
     .exit_command_fn = info.exit_command_fn,
     .sphere_bound_fn = info.sphere_bound_fn,
