@@ -128,7 +128,7 @@ pub const Export2dPopup = struct {
         defer render_pass.rg_pass.deinitFn(&render_pass.rg_pass);
 
         // Use render pass
-        var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(&nyan.global_render_graph.command_pool) catch unreachable;
+        var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(nyan.global_render_graph.getCurrentCommandPool()) catch unreachable;
         scb.command_buffer.beginSingleTimeCommands();
         render_pass.rg_pass.renderFn(&render_pass.rg_pass, &scb.command_buffer, 0);
 

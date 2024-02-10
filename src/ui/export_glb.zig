@@ -724,7 +724,13 @@ fn exportToMesh() void {
     const extract_pipeline: nyan.Pipeline = createComputePipeline(&pipeline_cache, &pipeline_layout, &extract_shader);
     defer extract_pipeline.destroy();
 
-    var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(&nyan.global_render_graph.compute_command_pool) catch unreachable;
+    var command_pool: nyan.CommandPool = nyan.CommandPool.create(nyan.vkctxt.physical_device.family_indices.compute_family) catch |err| {
+        nyan.printVulkanError("Can't create command pool for glb export", err);
+        return;
+    };
+    defer command_pool.destroy();
+
+    var scb: nyan.SingleCommandBuffer = nyan.SingleCommandBuffer.allocate(&command_pool) catch unreachable;
     scb.command_buffer.beginSingleTimeCommands();
 
     nyan.vkfn.d.cmdBindDescriptorSets(

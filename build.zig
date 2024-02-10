@@ -47,13 +47,17 @@ pub fn build(b: *Builder) void {
         lamia.addObjectFile("zig-cache/icon.res");
     }
 
-    const vulkan_validation: bool = b.option(bool, "vulkan-validation", "Use vulkan validation layer, useful for vulkan development. Needs Vulkan SDK") orelse false;
-    const enable_tracing: bool = b.option(bool, "enable-tracing", "Enable tracing with tracy v0.8") orelse false;
-    const panic_on_all_errors: bool = b.option(bool, "panic-on-all-errors", "Panic on all errors") orelse false;
-
     lamia.linkSystemLibrary("c");
 
-    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", vulkan_validation, enable_tracing, panic_on_all_errors, true);
+    const build_options: nyan_build.BuildOptions = .{
+        .compile_glfw = true,
+        .dev_build = false,
+        .enable_tracing = b.option(bool, "enable-tracing", "Enable tracing with tracy v0.8") orelse false,
+        .panic_on_all_errors = b.option(bool, "panic-on-all-errors", "Panic on all errors") orelse false,
+        .use_vulkan_sdk = b.option(bool, "vulkan-validation", "Use vulkan validation layer, useful for vulkan development. Needs Vulkan SDK") orelse false,
+    };
+
+    var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", build_options);
 
     lamia.linkLibrary(nyancoreLib);
     lamia.step.dependOn(&nyancoreLib.step);
