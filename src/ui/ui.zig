@@ -5,6 +5,9 @@ const Allocator = @import("std").mem.Allocator;
 const drawAboutDialog = @import("about.zig").drawAboutDialog;
 const drawExportSdfDialog = @import("export_sdf.zig").drawExportSdfDialog;
 const drawExportGlbDialog = @import("export_glb.zig").drawExportGlbDialog;
+
+const importStep = @import("import_step.zig");
+
 const SceneNode = @import("../scene/scene_node.zig").SceneNode;
 const Global = @import("../global.zig");
 const GizmoStorage = @import("widgets/viewport_gizmos.zig").GizmoStorage;
@@ -131,6 +134,7 @@ pub const UI = struct {
         var open_about_popup: bool = false;
         var open_export_sdf_popup: bool = false;
         var open_export_glb_popup: bool = false;
+        var open_import_step_popup: bool = false;
 
         if (nc.igBeginMenuBar()) {
             if (nc.igBeginMenu("Windows", true)) {
@@ -142,6 +146,11 @@ pub const UI = struct {
             if (nc.igBeginMenu("Export", true)) {
                 _ = nc.igMenuItem_BoolPtr("Export nyan sdf", "", &open_export_sdf_popup, true);
                 _ = nc.igMenuItem_BoolPtr("Export glb mesh", "", &open_export_glb_popup, true);
+                nc.igEndMenu();
+            }
+
+            if (nc.igBeginMenu("Import", true)) {
+                _ = nc.igMenuItem_BoolPtr("Import STEP", "", &open_import_step_popup, true);
                 nc.igEndMenu();
             }
 
@@ -176,6 +185,10 @@ pub const UI = struct {
         if (open_export_glb_popup)
             nc.igOpenPopup("Export to GLB Mesh", nc.ImGuiPopupFlags_None);
         drawExportGlbDialog();
+
+        if (open_import_step_popup)
+            nc.igOpenPopup(@ptrCast(importStep.popup_title), nc.ImGuiPopupFlags_None);
+        importStep.drawImportStepDialog();
     }
 
     fn draw(nyanui: *nyan.UI) void {
