@@ -8,7 +8,9 @@ var selected_file_path: [file_path_len]u8 = [_]u8{0} ** file_path_len;
 pub const popup_title: []const u8 = "Import STEP File";
 
 pub fn importStepFile(path: []const u8) void {
-    _ = path;
+    const cwd: std.fs.Dir = std.fs.cwd();
+    const data: []u8 = cwd.readFileAlloc(nyan.app.allocator, path, std.math.maxInt(usize)) catch unreachable;
+    defer nyan.app.allocator.free(data);
 }
 
 pub fn drawImportStepDialog() void {
