@@ -38,11 +38,12 @@ pub fn main() !void {
     nyan.initGlobalData(allocator);
     defer nyan.deinitGlobalData();
 
-    var systems: [3]*nyan.System = [_]*nyan.System{
-        &renderer.system,
-        &ui.nyanui.system,
-        &Global.file_watcher.system,
-    };
+    var systems = nyan.Application.SystemsMap.init(allocator);
+    defer systems.deinit();
+
+    systems.put(nyan.typeId(@TypeOf(renderer)), &renderer.system) catch unreachable;
+    systems.put(nyan.typeId(@TypeOf(ui)), &ui.system) catch unreachable;
+    systems.put(nyan.typeId(@TypeOf(Global.file_watcher)), &Global.file_watcher.system) catch unreachable;
 
     nyan.app.init("lamia", allocator, &systems);
     defer nyan.app.deinit();

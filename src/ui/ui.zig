@@ -32,12 +32,10 @@ fn mainColorWithTransparency(ind: usize, transparency: f32) nc.ImVec4 {
 
 pub const UI = struct {
     nyanui: nyan.UI,
+    system: nyan.System,
 
     dockspace: nyan.Widgets.DockSpace,
     windows: [5]*nyan.Widgets.Window,
-
-    nyanui_system_init_fn: *const fn (system: *nyan.System, app: *nyan.Application) void,
-    nyanui_system_deinit_fn: *const fn (system: *nyan.System) void,
 
     console: Console,
     inspector: Inspector,
@@ -54,11 +52,7 @@ pub const UI = struct {
         self.nyanui.paletteFn = UI.palette;
         self.nyanui.drawFn = UI.draw;
 
-        self.nyanui_system_init_fn = self.nyanui.system.init;
-        self.nyanui.system.init = systemInit;
-
-        self.nyanui_system_deinit_fn = self.nyanui.system.deinit;
-        self.nyanui.system.deinit = systemDeinit;
+        self.system = nyan.System.create("Lamia UI System", systemInit, systemDeinit, systemUpdate);
 
         self.dockspace.init("DockSpace", initLayout);
         self.nyanui.dockspace = &self.dockspace;
@@ -83,10 +77,9 @@ pub const UI = struct {
     }
 
     fn systemInit(system: *nyan.System, app: *nyan.Application) void {
-        const nyanui: *nyan.UI = @fieldParentPtr(nyan.UI, "system", system);
-        const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
+        const self: *UI = @fieldParentPtr(UI, "system", system);
 
-        self.nyanui_system_init_fn(system, app);
+        self.nyanui.system.init(&self.nyanui.system, app);
 
         Global.main_scene.recompile();
 
@@ -97,8 +90,8 @@ pub const UI = struct {
     }
 
     fn systemDeinit(system: *nyan.System) void {
-        const nyanui: *nyan.UI = @fieldParentPtr(nyan.UI, "system", system);
-        const self: *UI = @fieldParentPtr(UI, "nyanui", nyanui);
+        const self: *UI = @fieldParentPtr(UI, "system", system);
+        self.nyanui.system.deinit(&self.nyanui.system);
 
         self.gizmo_storage.deinit();
 
@@ -108,8 +101,11 @@ pub const UI = struct {
         self.viewport_space.window.widget.deinit(&self.viewport_space.window.widget);
 
         self.dockspace.deinit();
+    }
 
-        self.nyanui_system_deinit_fn(system);
+    fn systemUpdate(system: *nyan.System, elapsed: f64) void {
+        const self: *UI = @fieldParentPtr(UI, "system", system);
+        self.nyanui.system.update(&self.nyanui.system, elapsed);
     }
 
     fn initLayout(main_id: nc.ImGuiID) void {
