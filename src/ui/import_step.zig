@@ -36,6 +36,47 @@ fn readFileSignature(step_data: *StepData, reader: anytype) !void {
     try reader.skipUntilDelimiterOrEof('\n');
 }
 
+fn parseHeader(step_data: *StepData, reader: anytype) !void {
+    var line = std.ArrayList(u8).init(step_data.allocator);
+    defer line.deinit();
+
+    while (true) {
+        reader.streamUntilDelimiter(line.writer(), '\n', null) catch return;
+        if (line.items.len > 0 and line.getLast() == '\r')
+            _ = line.pop();
+
+        if (std.mem.eql(u8, line.items, "HEADER;"))
+            break;
+        line.clearRetainingCapacity();
+    }
+    line.clearRetainingCapacity();
+
+    var header_lines = std.ArrayList([]u8).init(step_data.allocator);
+    defer header_lines.deinit();
+    defer {
+        for (header_lines.items) |hl|
+            step_data.allocator.free(hl);
+    }
+
+    while (true) {
+        reader.streamUntilDelimiter(line.writer(), '\n', null) catch return;
+        if (line.items.len > 0 and line.getLast() == '\r')
+            _ = line.pop();
+
+        if (std.mem.eql(u8, line.items, "ENDSEC;"))
+            break;
+
+        if (line.items.len == 0)
+            continue;
+
+        header_lines.append(step_data.allocator.dupe(u8, line.items) catch unreachable) catch unreachable;
+        line.clearRetainingCapacity();
+    }
+
+    for (header_lines.items) |hl|
+        std.debug.print("{s}\n", .{hl});
+}
+
 pub fn importStepFile(path: []const u8) !void {
     const cwd: std.fs.Dir = std.fs.cwd();
     const file: std.fs.File = try cwd.openFile(path, .{ .mode = .read_only });
@@ -46,6 +87,7 @@ pub fn importStepFile(path: []const u8) !void {
 
     const reader = file.reader();
     try readFileSignature(&step_data, reader);
+    try parseHeader(&step_data, reader);
 }
 
 pub fn drawImportStepDialog() void {
