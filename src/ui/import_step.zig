@@ -11,9 +11,21 @@ const StepParseError = error{
     WrongSignature,
 };
 
+const StepHeaderCommand = enum {
+    FILE_DESCRIPTION,
+    FILE_NAME,
+    FILE_SCHEMA,
+};
+
 pub const StepData = struct {
+    const FileDescription = struct {
+        description: []const u8,
+        implementation_level: [2]u3,
+    };
+
     allocator: std.mem.Allocator,
     iso: [2]u16,
+    file_description: FileDescription,
 };
 
 fn readFileSignature(step_data: *StepData, reader: anytype) !void {
@@ -34,6 +46,17 @@ fn readFileSignature(step_data: *StepData, reader: anytype) !void {
     step_data.iso[1] = try std.fmt.parseInt(@TypeOf(step_data.iso[1]), sig.items, 10);
 
     try reader.skipUntilDelimiterOrEof('\n');
+}
+
+fn parseFileDescription(step_data: *StepData, content: []const u8) !void {
+    const desc_start: usize = (std.mem.indexOfScalarPos(u8, content, 0, '\'') orelse return error.OutOfBounds) + 1;
+    const desc_end: usize = (std.mem.indexOfScalarPos(u8, content, desc_start, '\'') orelse return error.OutOfBounds);
+
+    step_data.file_description.description = try step_data.allocator.dupe(u8, content[desc_start..desc_end]);
+
+    const first_imp_pos: usize = (std.mem.indexOfScalarPos(u8, content, desc_end + 2, '\'') orelse return error.OutOfBounds) + 1;
+    step_data.file_description.implementation_level[0] = @intCast(content[first_imp_pos] - '0');
+    step_data.file_description.implementation_level[1] = @intCast(content[first_imp_pos + 2] - '0');
 }
 
 fn parseHeader(step_data: *StepData, reader: anytype) !void {
@@ -73,8 +96,15 @@ fn parseHeader(step_data: *StepData, reader: anytype) !void {
         line.clearRetainingCapacity();
     }
 
-    for (header_lines.items) |hl|
-        std.debug.print("{s}\n", .{hl});
+    for (header_lines.items) |hl| {
+        const command_end_pos: usize = std.mem.indexOfScalar(u8, hl, '(') orelse continue;
+        const command: StepHeaderCommand = std.meta.stringToEnum(StepHeaderCommand, hl[0..command_end_pos]) orelse continue;
+        switch (command) {
+            .FILE_DESCRIPTION => try parseFileDescription(step_data, hl[command_end_pos..]),
+            .FILE_NAME => {},
+            .FILE_SCHEMA => {},
+        }
+    }
 }
 
 pub fn importStepFile(path: []const u8) !void {
