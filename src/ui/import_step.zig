@@ -26,6 +26,10 @@ pub const StepData = struct {
     allocator: std.mem.Allocator,
     iso: [2]u16,
     file_description: FileDescription,
+
+    fn destroy(self: *StepData) void {
+        self.allocator.free(self.file_description.description);
+    }
 };
 
 fn readFileSignature(step_data: *StepData, reader: anytype) !void {
@@ -114,6 +118,7 @@ pub fn importStepFile(path: []const u8) !void {
 
     var step_data: StepData = undefined;
     step_data.allocator = nyan.app.allocator;
+    defer step_data.destroy();
 
     const reader = file.reader();
     try readFileSignature(&step_data, reader);
