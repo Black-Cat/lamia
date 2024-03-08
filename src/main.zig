@@ -1,10 +1,19 @@
+const std = @import("std");
+
 const nyan = @import("nyancore");
 const builtin = @import("builtin");
 
 const UI = @import("ui/ui.zig").UI;
 const Global = @import("global.zig");
 
-const std = @import("std");
+const importStepFile = @import("ui/import_step.zig").importStepFile;
+
+const FileExtension = enum {
+    step,
+    stp,
+    ls,
+    unknown,
+};
 
 fn setIcon(context: *anyopaque) void {
     _ = context;
@@ -64,8 +73,19 @@ pub fn main() !void {
     Global.main_scene.init();
     defer Global.main_scene.deinit();
 
-    if (nyan.app.args.get("")) |path|
-        Global.main_scene.load(path) catch nyan.printErrorNoPanic("Main", "Couldn't load path from args");
+    if (nyan.app.args.get("")) |path| {
+        var file_extension_it = std.mem.splitBackwards(u8, path, ".");
+        if (file_extension_it.next()) |file_extension_slice| {
+            var file_extension_lower: []u8 = std.ascii.allocLowerString(allocator, file_extension_slice) catch unreachable;
+            defer allocator.free(file_extension_lower);
+
+            var file_extension: FileExtension = std.meta.stringToEnum(FileExtension, file_extension_lower) orelse FileExtension.unknown;
+            switch (file_extension) {
+                .step, .stp => importStepFile(path) catch nyan.printErrorNoPanic("Main", "Couldn't load STEP file from args"),
+                .ls, .unknown => Global.main_scene.load(path) catch nyan.printErrorNoPanic("Main", "Couldn't load lamia scene from args"),
+            }
+        }
+    }
 
     try nyan.app.initSystems();
     defer nyan.app.deinitSystems();
