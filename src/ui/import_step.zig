@@ -61,10 +61,16 @@ pub const StepData = struct {
         authorization: []const u8,
     };
 
+    const FileSchema = struct {
+        schema: []const u8,
+        version: ?[]const u32,
+    };
+
     allocator: std.mem.Allocator,
     iso: [2]u16,
     file_description: FileDescription,
     file_name: FileName,
+    file_schema: FileSchema,
 
     fn destroy(self: *StepData) void {
         self.allocator.free(self.file_description.description);
@@ -75,6 +81,10 @@ pub const StepData = struct {
         self.allocator.free(self.file_name.preprocessor_version);
         self.allocator.free(self.file_name.originating_system);
         self.allocator.free(self.file_name.authorization);
+
+        self.allocator.free(self.file_schema.schema);
+        if (self.file_schema.version) |v|
+            self.allocator.free(v);
     }
 };
 
@@ -147,6 +157,27 @@ fn parseFileName(step_data: *StepData, content: []const u8) !void {
     }
 }
 
+fn parseFileSchema(step_data: *StepData, content: []const u8) !void {
+    var content_start: usize = std.mem.indexOfScalar(u8, content, '\'') orelse return error.OutOfBounds;
+
+    var it = std.mem.splitScalar(u8, content[content_start + 1 ..], '{');
+
+    var schema: []const u8 = it.next() orelse return error.OutOfBounds;
+    var needs_to_be_trimmed: bool = schema[schema.len - 1] == ' ';
+    var schema_end: usize = schema.len - (1 * @intFromBool(needs_to_be_trimmed));
+    step_data.file_schema.schema = try step_data.allocator.dupe(u8, schema[0..schema_end]);
+
+    step_data.file_schema.version = null;
+    var version: []const u8 = it.next() orelse return;
+    var version_end: usize = std.mem.indexOfScalar(u8, version, '}') orelse return error.OutOfBounds;
+
+    var version_list = std.ArrayList(u32).init(step_data.allocator);
+    var vit = std.mem.splitScalar(u8, version[1 .. version_end - 1], ' ');
+    while (vit.next()) |v|
+        try version_list.append(try std.fmt.parseInt(u32, v, 10));
+    step_data.file_schema.version = try version_list.toOwnedSlice();
+}
+
 fn parseHeader(step_data: *StepData, reader: anytype) !void {
     var line = std.ArrayList(u8).init(step_data.allocator);
     defer line.deinit();
@@ -190,7 +221,7 @@ fn parseHeader(step_data: *StepData, reader: anytype) !void {
         switch (command) {
             .FILE_DESCRIPTION => try parseFileDescription(step_data, hl[command_end_pos..]),
             .FILE_NAME => try parseFileName(step_data, hl[command_end_pos..]),
-            .FILE_SCHEMA => {},
+            .FILE_SCHEMA => try parseFileSchema(step_data, hl[command_end_pos..]),
         }
     }
 }

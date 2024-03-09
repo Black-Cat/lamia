@@ -81,8 +81,8 @@ pub fn main() !void {
 
             var file_extension: FileExtension = std.meta.stringToEnum(FileExtension, file_extension_lower) orelse FileExtension.unknown;
             switch (file_extension) {
-                .step, .stp => importStepFile(path) catch nyan.printErrorNoPanic("Main", "Couldn't load STEP file from args"),
-                .ls, .unknown => Global.main_scene.load(path) catch nyan.printErrorNoPanic("Main", "Couldn't load lamia scene from args"),
+                .step, .stp => importStepFile(path) catch |err| nyan.printZigErrorNoPanic("Main", "Couldn't load STEP file from args", err),
+                .ls, .unknown => Global.main_scene.load(path) catch |err| nyan.printZigErrorNoPanic("Main", "Couldn't load lamia scene from args", err),
             }
         }
     }
