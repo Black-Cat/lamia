@@ -71,6 +71,7 @@ pub const StepData = struct {
     file_description: FileDescription,
     file_name: FileName,
     file_schema: FileSchema,
+    comment: ?[]const u8,
 
     fn destroy(self: *StepData) void {
         self.allocator.free(self.file_description.description);
@@ -85,6 +86,8 @@ pub const StepData = struct {
         self.allocator.free(self.file_schema.schema);
         if (self.file_schema.version) |v|
             self.allocator.free(v);
+        if (self.comment) |c|
+            self.allocator.free(c);
     }
 };
 
@@ -178,14 +181,18 @@ fn parseFileSchema(step_data: *StepData, content: []const u8) !void {
     step_data.file_schema.version = try version_list.toOwnedSlice();
 }
 
+fn readLine(line: *std.ArrayList(u8), reader: anytype) void {
+    reader.streamUntilDelimiter(line.writer(), '\n', null) catch unreachable;
+    if (line.items.len > 0 and line.getLast() == '\r')
+        _ = line.pop();
+}
+
 fn parseHeader(step_data: *StepData, reader: anytype) !void {
     var line = std.ArrayList(u8).init(step_data.allocator);
     defer line.deinit();
 
     while (true) {
-        reader.streamUntilDelimiter(line.writer(), '\n', null) catch return;
-        if (line.items.len > 0 and line.getLast() == '\r')
-            _ = line.pop();
+        readLine(&line, reader);
 
         if (std.mem.eql(u8, line.items, "HEADER;"))
             break;
@@ -201,9 +208,7 @@ fn parseHeader(step_data: *StepData, reader: anytype) !void {
     }
 
     while (true) {
-        reader.streamUntilDelimiter(line.writer(), '\n', null) catch return;
-        if (line.items.len > 0 and line.getLast() == '\r')
-            _ = line.pop();
+        readLine(&line, reader);
 
         if (std.mem.eql(u8, line.items, "ENDSEC;"))
             break;
@@ -226,6 +231,38 @@ fn parseHeader(step_data: *StepData, reader: anytype) !void {
     }
 }
 
+// Parses comments and data start command
+fn parseTillDataStart(step_data: *StepData, reader: anytype) !void {
+    step_data.comment = null;
+
+    var line = std.ArrayList(u8).init(step_data.allocator);
+    defer line.deinit();
+
+    while (true) {
+        readLine(&line, reader);
+        defer line.clearRetainingCapacity();
+
+        if (std.mem.eql(u8, line.items, "DATA;"))
+            break;
+
+        // For now only one comment is allowed for simplicity
+        // Can't find any information how they suppose to be written
+        // If there are comments at other lines, they should be treated as comment for specific STEP command
+        if (step_data.comment != null)
+            continue;
+
+        var start_it = std.mem.splitSequence(u8, line.items, "/*");
+        var start = start_it.next() orelse continue;
+        start = start_it.next() orelse continue;
+
+        var end_it = std.mem.splitSequence(u8, start, "*/");
+        var comment: []const u8 = end_it.next() orelse continue;
+        comment = std.mem.trim(u8, comment, " ");
+
+        step_data.comment = step_data.allocator.dupe(u8, comment) catch unreachable;
+    }
+}
+
 pub fn importStepFile(path: []const u8) !void {
     const cwd: std.fs.Dir = std.fs.cwd();
     const file: std.fs.File = try cwd.openFile(path, .{ .mode = .read_only });
@@ -238,6 +275,7 @@ pub fn importStepFile(path: []const u8) !void {
     const reader = file.reader();
     try readFileSignature(&step_data, reader);
     try parseHeader(&step_data, reader);
+    try parseTillDataStart(&step_data, reader);
 }
 
 pub fn drawImportStepDialog() void {
