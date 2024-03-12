@@ -95,20 +95,20 @@ fn readFileSignature(step_data: *StepData, reader: anytype) !void {
     var sig: std.ArrayList(u8) = std.ArrayList(u8).init(step_data.allocator);
     defer sig.deinit();
 
-    try reader.streamUntilDelimiter(sig.writer(), '-', 5);
+    try fastStreamUntilDelimiter(reader, sig.writer(), '-');
 
     if (sig.items.len != 3 or sig.items[0] != 'I' or sig.items[1] != 'S' or sig.items[2] != 'O')
         return StepParseError.WrongSignature;
     sig.clearRetainingCapacity();
 
-    try reader.streamUntilDelimiter(sig.writer(), '-', 10);
+    try fastStreamUntilDelimiter(reader, sig.writer(), '-');
     step_data.iso[0] = try std.fmt.parseInt(@TypeOf(step_data.iso[0]), sig.items, 10);
     sig.clearRetainingCapacity();
 
-    try reader.streamUntilDelimiter(sig.writer(), ';', 10);
+    try fastStreamUntilDelimiter(reader, sig.writer(), ';');
     step_data.iso[1] = try std.fmt.parseInt(@TypeOf(step_data.iso[1]), sig.items, 10);
 
-    try reader.skipUntilDelimiterOrEof('\n');
+    try fastSkipUntilDelimiter(reader, '\n');
 }
 
 fn parseFileDescription(step_data: *StepData, content: []const u8) !void {
@@ -181,8 +181,52 @@ fn parseFileSchema(step_data: *StepData, content: []const u8) !void {
     step_data.file_schema.version = try version_list.toOwnedSlice();
 }
 
-fn readLine(line: *std.ArrayList(u8), reader: anytype) void {
-    reader.streamUntilDelimiter(line.writer(), '\n', null) catch unreachable;
+// https://www.openmymind.net/Performance-of-reading-a-file-line-by-line-in-Zig/
+fn fastStreamUntilDelimiter(buffered: anytype, writer: anytype, delimiter: u8) !void {
+    while (true) {
+        const start = buffered.start;
+        if (std.mem.indexOfScalar(u8, buffered.buf[start..buffered.end], delimiter)) |pos| {
+            // we found the delimiter
+            try writer.writeAll(buffered.buf[start .. start + pos]);
+            // skip the delimiter
+            buffered.start += pos + 1;
+            return;
+        } else {
+            // we didn't find the delimiter, add everything to the output writer...
+            try writer.writeAll(buffered.buf[start..buffered.end]);
+
+            // ... and refill the buffer
+            const n = try buffered.unbuffered_reader.read(buffered.buf[0..]);
+            if (n == 0) {
+                return error.EndOfStream;
+            }
+            buffered.start = 0;
+            buffered.end = n;
+        }
+    }
+}
+
+fn fastSkipUntilDelimiter(buffered: anytype, delimiter: u8) !void {
+    while (true) {
+        const start = buffered.start;
+        if (std.mem.indexOfScalar(u8, buffered.buf[start..buffered.end], delimiter)) |pos| {
+            // skip the delimiter
+            buffered.start += pos + 1;
+            return;
+        } else {
+            // refill the buffer
+            const n = try buffered.unbuffered_reader.read(buffered.buf[0..]);
+            if (n == 0) {
+                return error.EndOfStream;
+            }
+            buffered.start = 0;
+            buffered.end = n;
+        }
+    }
+}
+
+fn readLine(line: *std.ArrayList(u8), reader: anytype) !void {
+    try fastStreamUntilDelimiter(reader, line.writer(), '\n');
     if (line.items.len > 0 and line.getLast() == '\r')
         _ = line.pop();
 }
@@ -192,13 +236,12 @@ fn parseHeader(step_data: *StepData, reader: anytype) !void {
     defer line.deinit();
 
     while (true) {
-        readLine(&line, reader);
+        readLine(&line, reader) catch break;
+        defer line.clearRetainingCapacity();
 
         if (std.mem.eql(u8, line.items, "HEADER;"))
             break;
-        line.clearRetainingCapacity();
     }
-    line.clearRetainingCapacity();
 
     var header_lines = std.ArrayList([]u8).init(step_data.allocator);
     defer header_lines.deinit();
@@ -208,7 +251,7 @@ fn parseHeader(step_data: *StepData, reader: anytype) !void {
     }
 
     while (true) {
-        readLine(&line, reader);
+        readLine(&line, reader) catch break;
 
         if (std.mem.eql(u8, line.items, "ENDSEC;"))
             break;
@@ -239,7 +282,7 @@ fn parseTillDataStart(step_data: *StepData, reader: anytype) !void {
     defer line.deinit();
 
     while (true) {
-        readLine(&line, reader);
+        readLine(&line, reader) catch break;
         defer line.clearRetainingCapacity();
 
         if (std.mem.eql(u8, line.items, "DATA;"))
@@ -263,6 +306,19 @@ fn parseTillDataStart(step_data: *StepData, reader: anytype) !void {
     }
 }
 
+fn parseData(step_data: *StepData, reader: anytype) !void {
+    var line = std.ArrayList(u8).init(step_data.allocator);
+    defer line.deinit();
+
+    while (true) {
+        readLine(&line, reader) catch break;
+        defer line.clearRetainingCapacity();
+
+        if (std.mem.eql(u8, line.items, "ENDSEC;"))
+            break;
+    }
+}
+
 pub fn importStepFile(path: []const u8) !void {
     const cwd: std.fs.Dir = std.fs.cwd();
     const file: std.fs.File = try cwd.openFile(path, .{ .mode = .read_only });
@@ -272,10 +328,12 @@ pub fn importStepFile(path: []const u8) !void {
     step_data.allocator = nyan.app.allocator;
     defer step_data.destroy();
 
-    const reader = file.reader();
-    try readFileSignature(&step_data, reader);
-    try parseHeader(&step_data, reader);
-    try parseTillDataStart(&step_data, reader);
+    var reader = std.io.bufferedReader(file.reader());
+
+    try readFileSignature(&step_data, &reader);
+    try parseHeader(&step_data, &reader);
+    try parseTillDataStart(&step_data, &reader);
+    try parseData(&step_data, &reader);
 }
 
 pub fn drawImportStepDialog() void {
