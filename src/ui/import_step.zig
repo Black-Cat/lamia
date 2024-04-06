@@ -17,6 +17,10 @@ const StepHeaderCommand = enum {
     FILE_SCHEMA,
 };
 
+const EntityType = enum {
+    PRODUCT,
+};
+
 pub const StepData = struct {
     const FileDescription = struct {
         description: []const u8,
@@ -66,12 +70,92 @@ pub const StepData = struct {
         version: ?[]const u32,
     };
 
+    fn parseStringArg(arg: []const u8) []const u8 {
+        return arg[1 .. arg.len - 1];
+    }
+
+    fn parseRefArrayArg(arg: []const u8, allocator: std.mem.Allocator) std.ArrayList(usize) {
+        var refs = std.ArrayList(usize).init(allocator);
+
+        var end: usize = std.mem.indexOfScalar(u8, arg, ')') orelse unreachable;
+        var it = std.mem.tokenizeScalar(u8, arg[1..end], ' ');
+
+        while (it.next()) |val| {
+            refs.append(std.fmt.parseInt(usize, val[1..], 10) catch unreachable) catch unreachable;
+        }
+
+        return refs;
+    }
+
+    const Product = struct {
+        allocator: std.mem.Allocator,
+        id: []const u8,
+        name: []const u8,
+        description: []const u8,
+        frame_of_reference: std.ArrayList(usize), // Set of PRODUCT_CONTEXT
+
+        fn parseArgs(self: *Product, line: []const u8, allocator: std.mem.Allocator) void {
+            var it = std.mem.splitScalar(u8, line, ',');
+
+            self.allocator = allocator;
+            self.id = allocator.dupe(u8, parseStringArg(it.next() orelse unreachable)) catch unreachable;
+            self.name = allocator.dupe(u8, parseStringArg(it.next() orelse unreachable)) catch unreachable;
+            self.description = allocator.dupe(u8, parseStringArg(it.next() orelse unreachable)) catch unreachable;
+            self.frame_of_reference = parseRefArrayArg(it.next() orelse unreachable, self.allocator);
+        }
+
+        fn deinit(self: *Product) void {
+            self.allocator.free(self.id);
+            self.allocator.free(self.name);
+            self.allocator.free(self.description);
+            self.frame_of_reference.deinit();
+        }
+    };
+
+    fn entityArrayFieldName(comptime entity_type: type) []const u8 {
+        var type_name: []const u8 = @typeName(entity_type);
+        var name_index: usize = (std.mem.lastIndexOfScalar(u8, type_name, '.') orelse 0) + 1;
+        return .{std.ascii.toLower(type_name[name_index])} ++ type_name[name_index + 1 ..] ++ "s";
+    }
+
+    fn CreateEntityArrayType(comptime entity_types: anytype) type {
+        var fields: [entity_types.len]std.builtin.Type.StructField = undefined;
+        for (entity_types, &fields) |et, *f|
+            f.* = .{
+                .name = entityArrayFieldName(et),
+                .type = std.ArrayList(*et),
+                .default_value = null,
+                .is_comptime = false,
+                .alignment = 0,
+            };
+
+        return @Type(.{
+            .Struct = .{
+                .layout = .Auto,
+                .fields = fields[0..],
+                .decls = &[_]std.builtin.Type.Declaration{},
+                .is_tuple = false,
+            },
+        });
+    }
+
+    const EntityTypes = .{
+        Product,
+    };
+
+    const EntityArrayType = CreateEntityArrayType(EntityTypes);
+
     allocator: std.mem.Allocator,
     iso: [2]u16,
     file_description: FileDescription,
     file_name: FileName,
     file_schema: FileSchema,
     comment: ?[]const u8,
+
+    // Only used for convenience, not actually responsible for memory
+    entities_list: std.ArrayList(*anyopaque),
+
+    entities: EntityArrayType,
 
     fn destroy(self: *StepData) void {
         self.allocator.free(self.file_description.description);
@@ -88,6 +172,27 @@ pub const StepData = struct {
             self.allocator.free(v);
         if (self.comment) |c|
             self.allocator.free(c);
+
+        self.entities_list.deinit();
+        self.deinitEntities();
+    }
+
+    fn initEntities(self: *StepData) void {
+        const fields: []const std.builtin.Type.StructField = @typeInfo(@TypeOf(self.entities)).Struct.fields;
+        inline for (fields) |f|
+            @field(self.entities, f.name) = (@TypeOf(@field(self.entities, f.name))).init(self.allocator);
+    }
+
+    fn deinitEntities(self: *StepData) void {
+        const fields: []const std.builtin.Type.StructField = @typeInfo(@TypeOf(self.entities)).Struct.fields;
+        inline for (fields) |f| {
+            var entity_field = @field(self.entities, f.name);
+            for (entity_field.items) |e| {
+                e.deinit();
+                self.allocator.destroy(e);
+            }
+            entity_field.deinit();
+        }
     }
 };
 
@@ -307,6 +412,9 @@ fn parseTillDataStart(step_data: *StepData, reader: anytype) !void {
 }
 
 fn parseData(step_data: *StepData, reader: anytype) !void {
+    step_data.entities_list = std.ArrayList(*anyopaque).init(step_data.allocator);
+    step_data.initEntities();
+
     var line = std.ArrayList(u8).init(step_data.allocator);
     defer line.deinit();
 
@@ -316,6 +424,24 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
 
         if (std.mem.eql(u8, line.items, "ENDSEC;"))
             break;
+
+        const equal_sign_index: usize = std.mem.indexOfScalar(u8, line.items, '=') orelse unreachable;
+        const index: usize = try std.fmt.parseInt(usize, line.items[1..equal_sign_index], 10);
+
+        const args_start: usize = (std.mem.indexOfScalar(u8, line.items[equal_sign_index..], '(') orelse unreachable) + equal_sign_index;
+        const entity_type: EntityType = std.meta.stringToEnum(EntityType, line.items[equal_sign_index + 1 .. args_start]) orelse continue;
+
+        const ParsedType: type = switch (entity_type) {
+            .PRODUCT => StepData.Product,
+        };
+
+        var entity: *ParsedType = step_data.allocator.create(ParsedType) catch unreachable;
+        entity.parseArgs(line.items[args_start + 1 ..], step_data.allocator);
+        @field(step_data.entities, StepData.entityArrayFieldName(ParsedType)).append(entity) catch unreachable;
+
+        if (step_data.entities_list.items.len <= index)
+            step_data.entities_list.resize(index + 1) catch unreachable;
+        step_data.entities_list.items[index] = @ptrCast(entity);
     }
 }
 
