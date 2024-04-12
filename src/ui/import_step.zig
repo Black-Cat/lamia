@@ -2,6 +2,13 @@ const std = @import("std");
 const nyan = @import("nyancore");
 const nc = nyan.c;
 
+const Global = @import("../global.zig");
+
+const Scene = @import("../scene/scene.zig").Scene;
+const SceneNode = @import("../scene/scene_node.zig").SceneNode;
+
+const UnionNodeType = @import("../nodes/combinators/union.zig").Union;
+
 const file_path_len: usize = 256;
 var selected_file_path: [file_path_len]u8 = [_]u8{0} ** file_path_len;
 
@@ -70,8 +77,104 @@ pub const StepData = struct {
         version: ?[]const u32,
     };
 
-    fn parseStringArg(arg: []const u8) []const u8 {
-        return arg[1 .. arg.len - 1];
+    fn parseStringArg(arg: []const u8, allocator: std.mem.Allocator) []const u8 {
+        // Search for utf-16/32 end marker
+        var str: []const u8 = arg[1 .. arg.len - 1];
+        if (std.mem.indexOf(u8, str, "\\X0\\") == null)
+            return allocator.dupe(u8, str) catch unreachable;
+
+        var decoded_str = std.ArrayList(u8).init(allocator);
+
+        const UtfMarker = enum { X2, X4, X0 };
+        var state: UtfMarker = .X0;
+        var prev_was_marker: bool = true;
+
+        var it = std.mem.splitScalar(u8, str, '\\');
+        while (it.next()) |s| {
+            const unicode_marker: ?UtfMarker = std.meta.stringToEnum(UtfMarker, s) orelse null;
+
+            if (unicode_marker == null) {
+                switch (state) {
+                    .X0 => {
+                        // Restore innocent \ in string
+                        if (!prev_was_marker)
+                            decoded_str.append('\\') catch unreachable;
+                        decoded_str.appendSlice(s) catch unreachable;
+                    },
+                    .X2 => {
+                        var byte_it_2 = std.mem.window(u8, s, 4, 4);
+                        while (byte_it_2.next()) |bytes_hex| {
+                            var bytes: [2]u8 = [_]u8{
+                                std.fmt.parseInt(u8, bytes_hex[0..2], 16) catch unreachable,
+                                std.fmt.parseInt(u8, bytes_hex[2..4], 16) catch unreachable,
+                            };
+
+                            if (bytes[0] == 0) {
+                                // 2 byte utf-8 representation
+                                var utf8: [2]u8 = [_]u8{
+                                    0b1100_0000,
+                                    0b1000_0000,
+                                };
+                                utf8[0] |= (bytes[0] & 0b0000_0111) << 2;
+                                utf8[0] |= (bytes[1] & 0b1100_0000) >> 6;
+                                utf8[1] |= bytes[1] & 0b0011_1111;
+
+                                decoded_str.appendSlice(&utf8) catch unreachable;
+                            } else {
+                                // 3 byte utf-8 representation
+                                var utf8: [3]u8 = [_]u8{
+                                    0b1110_0000,
+                                    0b1000_0000,
+                                    0b1000_0000,
+                                };
+
+                                utf8[0] |= (bytes[0] & 0b1111_0000) >> 4;
+                                utf8[1] |= (bytes[0] & 0b0000_1111) << 2;
+                                utf8[1] |= (bytes[1] & 0b1100_0000) >> 6;
+                                utf8[2] |= bytes[1] & 0b0011_1111;
+
+                                decoded_str.appendSlice(&utf8) catch unreachable;
+                            }
+                        }
+                    },
+                    .X4 => {
+                        var byte_it_4 = std.mem.window(u8, s, 8, 8);
+                        while (byte_it_4.next()) |bytes_hex| {
+                            var bytes: [4]u8 = [_]u8{
+                                // Documentation says that utf-32 encoded by 4 bytes in STEP
+                                // But utf-32 only uses 21 bits and can be represented by 3 bytes
+                                0, //std.fmt.parseInt(u8, bytes_hex[0..2], 16) catch unreachable,
+                                std.fmt.parseInt(u8, bytes_hex[2..4], 16) catch unreachable,
+                                std.fmt.parseInt(u8, bytes_hex[4..6], 16) catch unreachable,
+                                std.fmt.parseInt(u8, bytes_hex[6..8], 16) catch unreachable,
+                            };
+
+                            var utf8: [4]u8 = [_]u8{
+                                0b1111_0000,
+                                0b1000_0000,
+                                0b1000_0000,
+                                0b1000_0000,
+                            };
+
+                            utf8[0] |= (bytes[1] & 0b0001_1100) >> 2;
+                            utf8[1] |= (bytes[1] & 0b0000_0011) << 4;
+                            utf8[1] |= (bytes[2] & 0b1111_0000) >> 4;
+                            utf8[2] |= (bytes[2] & 0b0000_1111) << 2;
+                            utf8[2] |= (bytes[3] & 0b1100_0000) >> 6;
+                            utf8[3] |= bytes[3] & 0b0011_1111;
+
+                            decoded_str.appendSlice(&utf8) catch unreachable;
+                        }
+                    },
+                }
+            } else {
+                state = unicode_marker.?;
+            }
+
+            prev_was_marker = unicode_marker != null;
+        }
+
+        return decoded_str.toOwnedSlice() catch unreachable;
     }
 
     fn parseRefArrayArg(arg: []const u8, allocator: std.mem.Allocator) std.ArrayList(usize) {
@@ -98,9 +201,9 @@ pub const StepData = struct {
             var it = std.mem.splitScalar(u8, line, ',');
 
             self.allocator = allocator;
-            self.id = allocator.dupe(u8, parseStringArg(it.next() orelse unreachable)) catch unreachable;
-            self.name = allocator.dupe(u8, parseStringArg(it.next() orelse unreachable)) catch unreachable;
-            self.description = allocator.dupe(u8, parseStringArg(it.next() orelse unreachable)) catch unreachable;
+            self.id = parseStringArg(it.next() orelse unreachable, self.allocator);
+            self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
+            self.description = parseStringArg(it.next() orelse unreachable, self.allocator);
             self.frame_of_reference = parseRefArrayArg(it.next() orelse unreachable, self.allocator);
         }
 
@@ -445,6 +548,13 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
     }
 }
 
+fn addStepToScene(step_data: *StepData, scene: *Scene) void {
+    for (step_data.entities.products.items) |p| {
+        var node: *SceneNode = scene.root.add();
+        node.init(&UnionNodeType, p.id, &scene.root);
+    }
+}
+
 pub fn importStepFile(path: []const u8) !void {
     const cwd: std.fs.Dir = std.fs.cwd();
     const file: std.fs.File = try cwd.openFile(path, .{ .mode = .read_only });
@@ -460,6 +570,8 @@ pub fn importStepFile(path: []const u8) !void {
     try parseHeader(&step_data, &reader);
     try parseTillDataStart(&step_data, &reader);
     try parseData(&step_data, &reader);
+
+    addStepToScene(&step_data, &Global.main_scene);
 }
 
 pub fn drawImportStepDialog() void {

@@ -39,6 +39,7 @@ pub const SceneNode = struct {
 
     pub fn setName(self: *SceneNode, name: []const u8) void {
         @memcpy(self.name[0 .. name.len + 1], name.ptr);
+        self.name[name.len] = 0;
     }
 
     pub fn add(self: *SceneNode) *SceneNode {
