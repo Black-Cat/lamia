@@ -28,6 +28,7 @@ const EntityType = enum {
     PRODUCT,
     PRODUCT_CONTEXT,
     APPLICATION_CONTEXT,
+    PRODUCT_DEFINITION,
 };
 
 pub const StepData = struct {
@@ -81,7 +82,7 @@ pub const StepData = struct {
 
     fn parseStringArg(arg: []const u8, allocator: std.mem.Allocator) []const u8 {
         // Search for utf-16/32 end marker
-        var str: []const u8 = arg[1 .. std.mem.lastIndexOfScalar(u8, arg, '\'') orelse unreachable];
+        var str: []const u8 = arg[1 .. arg.len - 1];
         if (std.mem.indexOf(u8, str, "\\X0\\") == null)
             return allocator.dupe(u8, str) catch unreachable;
 
@@ -179,6 +180,12 @@ pub const StepData = struct {
         return decoded_str.toOwnedSlice() catch unreachable;
     }
 
+    fn parseOptionalStringArg(arg: []const u8, allocator: std.mem.Allocator) ?[]const u8 {
+        if (std.mem.eql(u8, arg, "\'\'"))
+            return null;
+        return parseStringArg(arg, allocator);
+    }
+
     fn parseRefArrayArg(arg: []const u8, allocator: std.mem.Allocator) std.ArrayList(usize) {
         var refs = std.ArrayList(usize).init(allocator);
 
@@ -256,6 +263,30 @@ pub const StepData = struct {
         }
     };
 
+    const ProductDefinition = struct {
+        allocator: std.mem.Allocator,
+        id: []const u8,
+        description: ?[]const u8,
+        formation: usize, // Reference to PRODUCT_DEFINITION_FORMATION
+        frame_of_reference: usize, // Reference to PRODUCT_DEFINITION_CONTEXT
+
+        fn parseArgs(self: *ProductDefinition, line: []const u8, allocator: std.mem.Allocator) void {
+            var it = std.mem.splitScalar(u8, line, ',');
+
+            self.allocator = allocator;
+            self.id = parseStringArg(it.next() orelse unreachable, self.allocator);
+            self.description = parseOptionalStringArg(it.next() orelse unreachable, self.allocator);
+            self.formation = parseRef(it.next() orelse unreachable);
+            self.frame_of_reference = parseRef(it.next() orelse unreachable);
+        }
+
+        fn deinit(self: *ProductDefinition) void {
+            self.allocator.free(self.id);
+            if (self.description) |d|
+                self.allocator.free(d);
+        }
+    };
+
     fn entityArrayFieldName(comptime entity_type: type) []const u8 {
         var type_name: []const u8 = @typeName(entity_type);
         var name_index: usize = (std.mem.lastIndexOfScalar(u8, type_name, '.') orelse 0) + 1;
@@ -298,6 +329,7 @@ pub const StepData = struct {
         Product,
         ProductContext,
         ApplicationContext,
+        ProductDefinition,
     };
 
     const EntityArrayType = CreateEntityArrayType(EntityTypes);
@@ -576,8 +608,10 @@ const ReadEntityInfo = struct {
 };
 
 fn readEntity(comptime Type: type, info: *ReadEntityInfo) void {
+    const args_end: usize = std.mem.lastIndexOfScalar(u8, info.line.items, ')') orelse unreachable;
+
     var entity: *Type = info.step_data.allocator.create(Type) catch unreachable;
-    entity.parseArgs(info.line.items[info.args_start + 1 ..], info.step_data.allocator);
+    entity.parseArgs(info.line.items[info.args_start + 1 .. args_end], info.step_data.allocator);
     @field(info.step_data.entities, StepData.entityArrayFieldName(Type)).append(entity) catch unreachable;
 
     if (info.step_data.entities_list.items.len <= info.index)
@@ -616,6 +650,7 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
             .PRODUCT => readEntity(StepData.Product, &read_entity_info),
             .PRODUCT_CONTEXT => readEntity(StepData.ProductContext, &read_entity_info),
             .APPLICATION_CONTEXT => readEntity(StepData.ApplicationContext, &read_entity_info),
+            .PRODUCT_DEFINITION => readEntity(StepData.ProductDefinition, &read_entity_info),
         }
     }
 }
