@@ -26,6 +26,7 @@ const StepHeaderCommand = enum {
 
 const EntityType = enum {
     PRODUCT,
+    PRODUCT_CONTEXT,
 };
 
 pub const StepData = struct {
@@ -79,7 +80,7 @@ pub const StepData = struct {
 
     fn parseStringArg(arg: []const u8, allocator: std.mem.Allocator) []const u8 {
         // Search for utf-16/32 end marker
-        var str: []const u8 = arg[1 .. arg.len - 1];
+        var str: []const u8 = arg[1 .. std.mem.lastIndexOfScalar(u8, arg, '\'') orelse unreachable];
         if (std.mem.indexOf(u8, str, "\\X0\\") == null)
             return allocator.dupe(u8, str) catch unreachable;
 
@@ -190,12 +191,16 @@ pub const StepData = struct {
         return refs;
     }
 
+    fn parseRef(arg: []const u8) usize {
+        return std.fmt.parseInt(usize, arg[1..], 10) catch unreachable;
+    }
+
     const Product = struct {
         allocator: std.mem.Allocator,
         id: []const u8,
         name: []const u8,
         description: []const u8,
-        frame_of_reference: std.ArrayList(usize), // Set of PRODUCT_CONTEXT
+        frame_of_reference: std.ArrayList(usize), // Set of references to PRODUCT_CONTEXT
 
         fn parseArgs(self: *Product, line: []const u8, allocator: std.mem.Allocator) void {
             var it = std.mem.splitScalar(u8, line, ',');
@@ -215,10 +220,42 @@ pub const StepData = struct {
         }
     };
 
+    const ProductContext = struct {
+        allocator: std.mem.Allocator,
+        name: []const u8,
+        application_context: usize, // Reference to APPLICATION_CONTEXT
+        discipline_type: []const u8,
+
+        fn parseArgs(self: *ProductContext, line: []const u8, allocator: std.mem.Allocator) void {
+            var it = std.mem.splitScalar(u8, line, ',');
+
+            self.allocator = allocator;
+            self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
+            self.application_context = parseRef(it.next() orelse unreachable);
+            self.discipline_type = parseStringArg(it.next() orelse unreachable, self.allocator);
+        }
+
+        fn deinit(self: *ProductContext) void {
+            self.allocator.free(self.name);
+            self.allocator.free(self.discipline_type);
+        }
+    };
+
     fn entityArrayFieldName(comptime entity_type: type) []const u8 {
         var type_name: []const u8 = @typeName(entity_type);
         var name_index: usize = (std.mem.lastIndexOfScalar(u8, type_name, '.') orelse 0) + 1;
-        return .{std.ascii.toLower(type_name[name_index])} ++ type_name[name_index + 1 ..] ++ "s";
+
+        var lower_case_name: []const u8 = .{std.ascii.toLower(type_name[name_index])} ++ type_name[name_index + 1 ..] ++ "s";
+
+        var snake_case_name: []const u8 = "";
+        for (lower_case_name) |ch| {
+            if (std.ascii.isUpper(ch)) {
+                snake_case_name = snake_case_name ++ "_" ++ .{std.ascii.toLower(ch)};
+            } else {
+                snake_case_name = snake_case_name ++ .{ch};
+            }
+        }
+        return snake_case_name;
     }
 
     fn CreateEntityArrayType(comptime entity_types: anytype) type {
@@ -244,6 +281,7 @@ pub const StepData = struct {
 
     const EntityTypes = .{
         Product,
+        ProductContext,
     };
 
     const EntityArrayType = CreateEntityArrayType(EntityTypes);
@@ -514,12 +552,33 @@ fn parseTillDataStart(step_data: *StepData, reader: anytype) !void {
     }
 }
 
+const ReadEntityInfo = struct {
+    step_data: *StepData,
+    line: *std.ArrayList(u8),
+    args_start: usize,
+    index: usize,
+};
+
+fn readEntity(comptime Type: type, info: *ReadEntityInfo) void {
+    var entity: *Type = info.step_data.allocator.create(Type) catch unreachable;
+    entity.parseArgs(info.line.items[info.args_start + 1 ..], info.step_data.allocator);
+    @field(info.step_data.entities, StepData.entityArrayFieldName(Type)).append(entity) catch unreachable;
+
+    if (info.step_data.entities_list.items.len <= info.index)
+        info.step_data.entities_list.resize(info.index + 1) catch unreachable;
+    info.step_data.entities_list.items[info.index] = @ptrCast(entity);
+}
+
 fn parseData(step_data: *StepData, reader: anytype) !void {
     step_data.entities_list = std.ArrayList(*anyopaque).init(step_data.allocator);
     step_data.initEntities();
 
     var line = std.ArrayList(u8).init(step_data.allocator);
     defer line.deinit();
+
+    var read_entity_info: ReadEntityInfo = undefined;
+    read_entity_info.step_data = step_data;
+    read_entity_info.line = &line;
 
     while (true) {
         readLine(&line, reader) catch break;
@@ -534,17 +593,13 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
         const args_start: usize = (std.mem.indexOfScalar(u8, line.items[equal_sign_index..], '(') orelse unreachable) + equal_sign_index;
         const entity_type: EntityType = std.meta.stringToEnum(EntityType, line.items[equal_sign_index + 1 .. args_start]) orelse continue;
 
-        const ParsedType: type = switch (entity_type) {
-            .PRODUCT => StepData.Product,
-        };
+        read_entity_info.args_start = args_start;
+        read_entity_info.index = index;
 
-        var entity: *ParsedType = step_data.allocator.create(ParsedType) catch unreachable;
-        entity.parseArgs(line.items[args_start + 1 ..], step_data.allocator);
-        @field(step_data.entities, StepData.entityArrayFieldName(ParsedType)).append(entity) catch unreachable;
-
-        if (step_data.entities_list.items.len <= index)
-            step_data.entities_list.resize(index + 1) catch unreachable;
-        step_data.entities_list.items[index] = @ptrCast(entity);
+        switch (entity_type) {
+            .PRODUCT => readEntity(StepData.Product, &read_entity_info),
+            .PRODUCT_CONTEXT => readEntity(StepData.ProductContext, &read_entity_info),
+        }
     }
 }
 
