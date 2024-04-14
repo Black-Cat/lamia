@@ -27,6 +27,7 @@ const StepHeaderCommand = enum {
 const EntityType = enum {
     PRODUCT,
     PRODUCT_CONTEXT,
+    APPLICATION_CONTEXT,
 };
 
 pub const StepData = struct {
@@ -241,6 +242,20 @@ pub const StepData = struct {
         }
     };
 
+    const ApplicationContext = struct {
+        allocator: std.mem.Allocator,
+        application: []const u8,
+
+        fn parseArgs(self: *ApplicationContext, line: []const u8, allocator: std.mem.Allocator) void {
+            self.allocator = allocator;
+            self.application = parseStringArg(line, self.allocator);
+        }
+
+        fn deinit(self: *ApplicationContext) void {
+            self.allocator.free(self.application);
+        }
+    };
+
     fn entityArrayFieldName(comptime entity_type: type) []const u8 {
         var type_name: []const u8 = @typeName(entity_type);
         var name_index: usize = (std.mem.lastIndexOfScalar(u8, type_name, '.') orelse 0) + 1;
@@ -282,6 +297,7 @@ pub const StepData = struct {
     const EntityTypes = .{
         Product,
         ProductContext,
+        ApplicationContext,
     };
 
     const EntityArrayType = CreateEntityArrayType(EntityTypes);
@@ -599,6 +615,7 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
         switch (entity_type) {
             .PRODUCT => readEntity(StepData.Product, &read_entity_info),
             .PRODUCT_CONTEXT => readEntity(StepData.ProductContext, &read_entity_info),
+            .APPLICATION_CONTEXT => readEntity(StepData.ApplicationContext, &read_entity_info),
         }
     }
 }
