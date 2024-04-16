@@ -29,6 +29,7 @@ const EntityType = enum {
     PRODUCT_CONTEXT,
     APPLICATION_CONTEXT,
     PRODUCT_DEFINITION,
+    PRODUCT_DEFINITION_CONTEXT,
 };
 
 pub const StepData = struct {
@@ -210,10 +211,7 @@ pub const StepData = struct {
         description: []const u8,
         frame_of_reference: std.ArrayList(usize), // Set of references to PRODUCT_CONTEXT
 
-        fn parseArgs(self: *Product, line: []const u8, allocator: std.mem.Allocator) void {
-            var it = std.mem.splitScalar(u8, line, ',');
-
-            self.allocator = allocator;
+        fn parseArgs(self: *Product, it: anytype) void {
             self.id = parseStringArg(it.next() orelse unreachable, self.allocator);
             self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
             self.description = parseStringArg(it.next() orelse unreachable, self.allocator);
@@ -234,10 +232,7 @@ pub const StepData = struct {
         application_context: usize, // Reference to APPLICATION_CONTEXT
         discipline_type: []const u8,
 
-        fn parseArgs(self: *ProductContext, line: []const u8, allocator: std.mem.Allocator) void {
-            var it = std.mem.splitScalar(u8, line, ',');
-
-            self.allocator = allocator;
+        fn parseArgs(self: *ProductContext, it: anytype) void {
             self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
             self.application_context = parseRef(it.next() orelse unreachable);
             self.discipline_type = parseStringArg(it.next() orelse unreachable, self.allocator);
@@ -253,9 +248,8 @@ pub const StepData = struct {
         allocator: std.mem.Allocator,
         application: []const u8,
 
-        fn parseArgs(self: *ApplicationContext, line: []const u8, allocator: std.mem.Allocator) void {
-            self.allocator = allocator;
-            self.application = parseStringArg(line, self.allocator);
+        fn parseArgs(self: *ApplicationContext, it: anytype) void {
+            self.application = parseStringArg(it.next() orelse unreachable, self.allocator);
         }
 
         fn deinit(self: *ApplicationContext) void {
@@ -270,10 +264,7 @@ pub const StepData = struct {
         formation: usize, // Reference to PRODUCT_DEFINITION_FORMATION
         frame_of_reference: usize, // Reference to PRODUCT_DEFINITION_CONTEXT
 
-        fn parseArgs(self: *ProductDefinition, line: []const u8, allocator: std.mem.Allocator) void {
-            var it = std.mem.splitScalar(u8, line, ',');
-
-            self.allocator = allocator;
+        fn parseArgs(self: *ProductDefinition, it: anytype) void {
             self.id = parseStringArg(it.next() orelse unreachable, self.allocator);
             self.description = parseOptionalStringArg(it.next() orelse unreachable, self.allocator);
             self.formation = parseRef(it.next() orelse unreachable);
@@ -284,6 +275,25 @@ pub const StepData = struct {
             self.allocator.free(self.id);
             if (self.description) |d|
                 self.allocator.free(d);
+        }
+    };
+
+    const ProductDefinitionContext = struct {
+        allocator: std.mem.Allocator,
+
+        name: []const u8,
+        frame_of_reference: usize, // Reference to APPLICATION_CONTEXT
+        life_cycle_stage: []const u8,
+
+        fn parseArgs(self: *ProductDefinitionContext, it: anytype) void {
+            self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
+            self.frame_of_reference = parseRef(it.next() orelse unreachable);
+            self.life_cycle_stage = parseStringArg(it.next() orelse unreachable, self.allocator);
+        }
+
+        fn deinit(self: *ProductDefinitionContext) void {
+            self.allocator.free(self.name);
+            self.allocator.free(self.life_cycle_stage);
         }
     };
 
@@ -330,6 +340,7 @@ pub const StepData = struct {
         ProductContext,
         ApplicationContext,
         ProductDefinition,
+        ProductDefinitionContext,
     };
 
     const EntityArrayType = CreateEntityArrayType(EntityTypes);
@@ -611,7 +622,10 @@ fn readEntity(comptime Type: type, info: *ReadEntityInfo) void {
     const args_end: usize = std.mem.lastIndexOfScalar(u8, info.line.items, ')') orelse unreachable;
 
     var entity: *Type = info.step_data.allocator.create(Type) catch unreachable;
-    entity.parseArgs(info.line.items[info.args_start + 1 .. args_end], info.step_data.allocator);
+    entity.allocator = info.step_data.allocator;
+
+    var it = std.mem.splitScalar(u8, info.line.items[info.args_start + 1 .. args_end], ',');
+    entity.parseArgs(&it);
     @field(info.step_data.entities, StepData.entityArrayFieldName(Type)).append(entity) catch unreachable;
 
     if (info.step_data.entities_list.items.len <= info.index)
@@ -651,6 +665,7 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
             .PRODUCT_CONTEXT => readEntity(StepData.ProductContext, &read_entity_info),
             .APPLICATION_CONTEXT => readEntity(StepData.ApplicationContext, &read_entity_info),
             .PRODUCT_DEFINITION => readEntity(StepData.ProductDefinition, &read_entity_info),
+            .PRODUCT_DEFINITION_CONTEXT => readEntity(StepData.ProductDefinitionContext, &read_entity_info),
         }
     }
 }
