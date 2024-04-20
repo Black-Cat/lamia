@@ -204,104 +204,164 @@ pub const StepData = struct {
         return std.fmt.parseInt(usize, arg[1..], 10) catch unreachable;
     }
 
-    const Product = struct {
-        allocator: std.mem.Allocator,
-        id: []const u8,
+    const StepEntityFields = enum {
+        String,
+        OptionalString,
+        Reference,
+        SetOfReferences,
+    };
+
+    const EntityFieldDescription = struct {
         name: []const u8,
-        description: []const u8,
-        frame_of_reference: std.ArrayList(usize), // Set of references to PRODUCT_CONTEXT
-
-        fn parseArgs(self: *Product, it: anytype) void {
-            self.id = parseStringArg(it.next() orelse unreachable, self.allocator);
-            self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
-            self.description = parseStringArg(it.next() orelse unreachable, self.allocator);
-            self.frame_of_reference = parseRefArrayArg(it.next() orelse unreachable, self.allocator);
-        }
-
-        fn deinit(self: *Product) void {
-            self.allocator.free(self.id);
-            self.allocator.free(self.name);
-            self.allocator.free(self.description);
-            self.frame_of_reference.deinit();
-        }
+        type: StepEntityFields,
     };
 
-    const ProductContext = struct {
-        allocator: std.mem.Allocator,
-        name: []const u8,
-        application_context: usize, // Reference to APPLICATION_CONTEXT
-        discipline_type: []const u8,
-
-        fn parseArgs(self: *ProductContext, it: anytype) void {
-            self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
-            self.application_context = parseRef(it.next() orelse unreachable);
-            self.discipline_type = parseStringArg(it.next() orelse unreachable, self.allocator);
-        }
-
-        fn deinit(self: *ProductContext) void {
-            self.allocator.free(self.name);
-            self.allocator.free(self.discipline_type);
-        }
+    const EntityDescription = struct {
+        field_descriptions: []const EntityFieldDescription,
     };
 
-    const ApplicationContext = struct {
-        allocator: std.mem.Allocator,
-        application: []const u8,
+    fn EntityMethods(comptime parent_type: type, comptime description: EntityDescription) type {
+        return struct {
+            fn parseArgs(self: *parent_type, it: anytype) void {
+                inline for (description.field_descriptions) |fd| {
+                    @field(self, fd.name) = switch (fd.type) {
+                        .String => parseStringArg(it.next() orelse unreachable, self.allocator),
+                        .OptionalString => parseOptionalStringArg(it.next() orelse unreachable, self.allocator),
+                        .Reference => parseRef(it.next() orelse unreachable),
+                        .SetOfReferences => parseRefArrayArg(it.next() orelse unreachable, self.allocator),
+                    };
+                }
+            }
 
-        fn parseArgs(self: *ApplicationContext, it: anytype) void {
-            self.application = parseStringArg(it.next() orelse unreachable, self.allocator);
-        }
+            fn deinit(self: *parent_type) void {
+                inline for (description.field_descriptions) |fd| {
+                    switch (fd.type) {
+                        .String => self.allocator.free(@field(self, fd.name)),
+                        .OptionalString => if (@field(self, fd.name)) |f|
+                            self.allocator.free(f),
+                        .Reference => {},
+                        .SetOfReferences => @field(self, fd.name).deinit(),
+                    }
+                }
+            }
+        };
+    }
 
-        fn deinit(self: *ApplicationContext) void {
-            self.allocator.free(self.application);
-        }
-    };
+    fn EntityStruct(comptime name: []const u8, comptime description: EntityDescription) type {
+        _ = name; // Used to deduce typename
+        var fields: [description.field_descriptions.len]std.builtin.Type.StructField = undefined;
+        for (description.field_descriptions, &fields) |fd, *f|
+            f.* = .{
+                .name = fd.name,
+                .type = switch (fd.type) {
+                    .String => []const u8,
+                    .OptionalString => ?[]const u8,
+                    .Reference => usize,
+                    .SetOfReferences => std.ArrayList(usize),
+                },
+                .default_value = null,
+                .is_comptime = false,
+                .alignment = 0,
+            };
 
-    const ProductDefinition = struct {
-        allocator: std.mem.Allocator,
-        id: []const u8,
-        description: ?[]const u8,
-        formation: usize, // Reference to PRODUCT_DEFINITION_FORMATION
-        frame_of_reference: usize, // Reference to PRODUCT_DEFINITION_CONTEXT
+        const Data = @Type(.{
+            .Struct = .{
+                .layout = .Auto,
+                .fields = fields[0..],
+                .decls = &[_]std.builtin.Type.Declaration{},
+                .is_tuple = false,
+            },
+        });
 
-        fn parseArgs(self: *ProductDefinition, it: anytype) void {
-            self.id = parseStringArg(it.next() orelse unreachable, self.allocator);
-            self.description = parseOptionalStringArg(it.next() orelse unreachable, self.allocator);
-            self.formation = parseRef(it.next() orelse unreachable);
-            self.frame_of_reference = parseRef(it.next() orelse unreachable);
-        }
+        return struct {
+            const Self = @This();
 
-        fn deinit(self: *ProductDefinition) void {
-            self.allocator.free(self.id);
-            if (self.description) |d|
-                self.allocator.free(d);
-        }
-    };
+            allocator: std.mem.Allocator,
+            d: Data,
 
-    const ProductDefinitionContext = struct {
-        allocator: std.mem.Allocator,
+            fn parseArgs(self: *Self, it: anytype) void {
+                inline for (description.field_descriptions) |fd| {
+                    @field(self.d, fd.name) = switch (fd.type) {
+                        .String => parseStringArg(it.next() orelse unreachable, self.allocator),
+                        .OptionalString => parseOptionalStringArg(it.next() orelse unreachable, self.allocator),
+                        .Reference => parseRef(it.next() orelse unreachable),
+                        .SetOfReferences => parseRefArrayArg(it.next() orelse unreachable, self.allocator),
+                    };
+                }
+            }
 
-        name: []const u8,
-        frame_of_reference: usize, // Reference to APPLICATION_CONTEXT
-        life_cycle_stage: []const u8,
+            fn deinit(self: *Self) void {
+                inline for (description.field_descriptions) |fd| {
+                    switch (fd.type) {
+                        .String => self.allocator.free(@field(self.d, fd.name)),
+                        .OptionalString => if (@field(self.d, fd.name)) |f|
+                            self.allocator.free(f),
+                        .Reference => {},
+                        .SetOfReferences => @field(self.d, fd.name).deinit(),
+                    }
+                }
+            }
+        };
+    }
 
-        fn parseArgs(self: *ProductDefinitionContext, it: anytype) void {
-            self.name = parseStringArg(it.next() orelse unreachable, self.allocator);
-            self.frame_of_reference = parseRef(it.next() orelse unreachable);
-            self.life_cycle_stage = parseStringArg(it.next() orelse unreachable, self.allocator);
-        }
+    const Product = EntityStruct("Product", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "id", .type = .String },
+            .{ .name = "name", .type = .String },
+            .{ .name = "description", .type = .String },
+            .{ .name = "frame_of_reference", .type = .SetOfReferences },
+        },
+    });
 
-        fn deinit(self: *ProductDefinitionContext) void {
-            self.allocator.free(self.name);
-            self.allocator.free(self.life_cycle_stage);
-        }
-    };
+    const ProductContext = EntityStruct("ProductContext", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "name", .type = .String },
+            .{ .name = "application_context", .type = .Reference }, // Reference ot APPLICATION_CONTEXT
+            .{ .name = "discipline_type", .type = .String },
+        },
+    });
+
+    const ApplicationContext = EntityStruct("ApplicationContext", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "application", .type = .String },
+        },
+    });
+
+    const ProductDefinition = EntityStruct("ProductDefinition", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "id", .type = .String },
+            .{ .name = "description", .type = .OptionalString },
+            .{ .name = "formation", .type = .Reference }, // Reference to PRODUCT_DEFINITION_FORMATION
+            .{ .name = "frame_of_reference", .type = .Reference }, // Reference to PRODUCT_DEFINITION_CONTEXT
+        },
+    });
+
+    const ProductDefinitionContext = EntityStruct("ProductDefinitionContext", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "name", .type = .String },
+            .{ .name = "frame_of_reference", .type = .Reference }, // Reference to APPLICATION_CONTEXT
+            .{ .name = "life_cycle_stage", .type = .String },
+        },
+    });
+
+    fn stepTypeToOurType(comptime entity_type: EntityType) type {
+        return switch (entity_type) {
+            .PRODUCT => Product,
+            .PRODUCT_CONTEXT => ProductContext,
+            .APPLICATION_CONTEXT => ApplicationContext,
+            .PRODUCT_DEFINITION => ProductDefinition,
+            .PRODUCT_DEFINITION_CONTEXT => ProductDefinitionContext,
+        };
+    }
 
     fn entityArrayFieldName(comptime entity_type: type) []const u8 {
-        var type_name: []const u8 = @typeName(entity_type);
-        var name_index: usize = (std.mem.lastIndexOfScalar(u8, type_name, '.') orelse 0) + 1;
+        var full_type_name: []const u8 = @typeName(entity_type);
 
-        var lower_case_name: []const u8 = .{std.ascii.toLower(type_name[name_index])} ++ type_name[name_index + 1 ..] ++ "s";
+        var it = std.mem.splitSequence(u8, full_type_name, "\"");
+        _ = it.next();
+
+        var type_name = it.next() orelse unreachable;
+        var lower_case_name: []const u8 = .{std.ascii.toLower(type_name[0])} ++ type_name[1..] ++ "s";
 
         var snake_case_name: []const u8 = "";
         for (lower_case_name) |ch| {
@@ -660,12 +720,9 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
         read_entity_info.args_start = args_start;
         read_entity_info.index = index;
 
-        switch (entity_type) {
-            .PRODUCT => readEntity(StepData.Product, &read_entity_info),
-            .PRODUCT_CONTEXT => readEntity(StepData.ProductContext, &read_entity_info),
-            .APPLICATION_CONTEXT => readEntity(StepData.ApplicationContext, &read_entity_info),
-            .PRODUCT_DEFINITION => readEntity(StepData.ProductDefinition, &read_entity_info),
-            .PRODUCT_DEFINITION_CONTEXT => readEntity(StepData.ProductDefinitionContext, &read_entity_info),
+        inline for (@typeInfo(EntityType).Enum.fields) |et| {
+            if (@as(EntityType, @enumFromInt(et.value)) == entity_type)
+                readEntity(StepData.stepTypeToOurType(@enumFromInt(et.value)), &read_entity_info);
         }
     }
 }
@@ -673,7 +730,7 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
 fn addStepToScene(step_data: *StepData, scene: *Scene) void {
     for (step_data.entities.products.items) |p| {
         var node: *SceneNode = scene.root.add();
-        node.init(&UnionNodeType, p.id, &scene.root);
+        node.init(&UnionNodeType, p.d.id, &scene.root);
     }
 }
 
