@@ -24,14 +24,6 @@ const StepHeaderCommand = enum {
     FILE_SCHEMA,
 };
 
-const EntityType = enum {
-    PRODUCT,
-    PRODUCT_CONTEXT,
-    APPLICATION_CONTEXT,
-    PRODUCT_DEFINITION,
-    PRODUCT_DEFINITION_CONTEXT,
-};
-
 pub const StepData = struct {
     const FileDescription = struct {
         description: []const u8,
@@ -190,8 +182,7 @@ pub const StepData = struct {
     fn parseRefArrayArg(arg: []const u8, allocator: std.mem.Allocator) std.ArrayList(usize) {
         var refs = std.ArrayList(usize).init(allocator);
 
-        var end: usize = std.mem.indexOfScalar(u8, arg, ')') orelse unreachable;
-        var it = std.mem.tokenizeScalar(u8, arg[1..end], ' ');
+        var it = std.mem.tokenizeScalar(u8, arg, ',');
 
         while (it.next()) |val| {
             refs.append(std.fmt.parseInt(usize, val[1..], 10) catch unreachable) catch unreachable;
@@ -219,33 +210,6 @@ pub const StepData = struct {
     const EntityDescription = struct {
         field_descriptions: []const EntityFieldDescription,
     };
-
-    fn EntityMethods(comptime parent_type: type, comptime description: EntityDescription) type {
-        return struct {
-            fn parseArgs(self: *parent_type, it: anytype) void {
-                inline for (description.field_descriptions) |fd| {
-                    @field(self, fd.name) = switch (fd.type) {
-                        .String => parseStringArg(it.next() orelse unreachable, self.allocator),
-                        .OptionalString => parseOptionalStringArg(it.next() orelse unreachable, self.allocator),
-                        .Reference => parseRef(it.next() orelse unreachable),
-                        .SetOfReferences => parseRefArrayArg(it.next() orelse unreachable, self.allocator),
-                    };
-                }
-            }
-
-            fn deinit(self: *parent_type) void {
-                inline for (description.field_descriptions) |fd| {
-                    switch (fd.type) {
-                        .String => self.allocator.free(@field(self, fd.name)),
-                        .OptionalString => if (@field(self, fd.name)) |f|
-                            self.allocator.free(f),
-                        .Reference => {},
-                        .SetOfReferences => @field(self, fd.name).deinit(),
-                    }
-                }
-            }
-        };
-    }
 
     fn EntityStruct(comptime name: []const u8, comptime description: EntityDescription) type {
         _ = name; // Used to deduce typename
@@ -344,6 +308,42 @@ pub const StepData = struct {
         },
     });
 
+    const ProductDefinitionShape = EntityStruct("ProductDefinitionShape", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "name", .type = .String },
+            .{ .name = "description", .type = .String },
+            .{ .name = "definition", .type = .Reference }, // Reference to PRODUCT_DEFINITION
+        },
+    });
+
+    const MechanicalDesignGeometricPresentationRepresentation = EntityStruct("MechanicalDesignGeometricPresentationRepresentation", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "name", .type = .String },
+            .{ .name = "items", .type = .SetOfReferences }, // Reference to MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION_ITEMS
+            .{ .name = "context_of_items", .type = .Reference }, // Reference to REPRESENTATION_CONTEXT
+        },
+    });
+
+    const EntityType = enum {
+        PRODUCT,
+        PRODUCT_CONTEXT,
+        APPLICATION_CONTEXT,
+        PRODUCT_DEFINITION,
+        PRODUCT_DEFINITION_CONTEXT,
+        PRODUCT_DEFINITION_SHAPE,
+        MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION,
+    };
+
+    const EntityTypes = .{
+        Product,
+        ProductContext,
+        ApplicationContext,
+        ProductDefinition,
+        ProductDefinitionContext,
+        ProductDefinitionShape,
+        MechanicalDesignGeometricPresentationRepresentation,
+    };
+
     fn stepTypeToOurType(comptime entity_type: EntityType) type {
         return switch (entity_type) {
             .PRODUCT => Product,
@@ -351,13 +351,15 @@ pub const StepData = struct {
             .APPLICATION_CONTEXT => ApplicationContext,
             .PRODUCT_DEFINITION => ProductDefinition,
             .PRODUCT_DEFINITION_CONTEXT => ProductDefinitionContext,
+            .PRODUCT_DEFINITION_SHAPE => ProductDefinitionShape,
+            .MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION => MechanicalDesignGeometricPresentationRepresentation,
         };
     }
 
     fn entityArrayFieldName(comptime entity_type: type) []const u8 {
         var full_type_name: []const u8 = @typeName(entity_type);
 
-        var it = std.mem.splitSequence(u8, full_type_name, "\"");
+        var it = std.mem.splitScalar(u8, full_type_name, '\"');
         _ = it.next();
 
         var type_name = it.next() orelse unreachable;
@@ -394,14 +396,6 @@ pub const StepData = struct {
             },
         });
     }
-
-    const EntityTypes = .{
-        Product,
-        ProductContext,
-        ApplicationContext,
-        ProductDefinition,
-        ProductDefinitionContext,
-    };
 
     const EntityArrayType = CreateEntityArrayType(EntityTypes);
 
@@ -678,13 +672,36 @@ const ReadEntityInfo = struct {
     index: usize,
 };
 
+const StepArgumentIterator = struct {
+    line: []const u8,
+
+    pub fn next(self: *StepArgumentIterator) ?[]const u8 {
+        if (self.line.len == 0)
+            return null;
+
+        var is_array = self.line[0] == '(';
+
+        if (!is_array) {
+            var comma_index = std.mem.indexOfScalar(u8, self.line, ',') orelse self.line.len;
+            var arg: []const u8 = self.line[0..comma_index];
+            self.line = self.line[@min(self.line.len, comma_index + 1)..];
+            return arg;
+        }
+
+        var bracket_index = std.mem.indexOfScalar(u8, self.line, ')') orelse unreachable;
+        var arg: []const u8 = self.line[1..bracket_index];
+        self.line = self.line[@min(self.line.len, bracket_index + 2)..];
+        return arg;
+    }
+};
+
 fn readEntity(comptime Type: type, info: *ReadEntityInfo) void {
     const args_end: usize = std.mem.lastIndexOfScalar(u8, info.line.items, ')') orelse unreachable;
 
     var entity: *Type = info.step_data.allocator.create(Type) catch unreachable;
     entity.allocator = info.step_data.allocator;
 
-    var it = std.mem.splitScalar(u8, info.line.items[info.args_start + 1 .. args_end], ',');
+    var it: StepArgumentIterator = .{ .line = info.line.items[info.args_start + 1 .. args_end] };
     entity.parseArgs(&it);
     @field(info.step_data.entities, StepData.entityArrayFieldName(Type)).append(entity) catch unreachable;
 
@@ -715,13 +732,13 @@ fn parseData(step_data: *StepData, reader: anytype) !void {
         const index: usize = try std.fmt.parseInt(usize, line.items[1..equal_sign_index], 10);
 
         const args_start: usize = (std.mem.indexOfScalar(u8, line.items[equal_sign_index..], '(') orelse unreachable) + equal_sign_index;
-        const entity_type: EntityType = std.meta.stringToEnum(EntityType, line.items[equal_sign_index + 1 .. args_start]) orelse continue;
+        const entity_type: StepData.EntityType = std.meta.stringToEnum(StepData.EntityType, line.items[equal_sign_index + 1 .. args_start]) orelse continue;
 
         read_entity_info.args_start = args_start;
         read_entity_info.index = index;
 
-        inline for (@typeInfo(EntityType).Enum.fields) |et| {
-            if (@as(EntityType, @enumFromInt(et.value)) == entity_type)
+        inline for (@typeInfo(StepData.EntityType).Enum.fields) |et| {
+            if (@as(StepData.EntityType, @enumFromInt(et.value)) == entity_type)
                 readEntity(StepData.stepTypeToOurType(@enumFromInt(et.value)), &read_entity_info);
         }
     }
