@@ -324,6 +324,23 @@ pub const StepData = struct {
         },
     });
 
+    const ShapeRepresentation = EntityStruct("ShapeRepresentation", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "name", .type = .String },
+            .{ .name = "items", .type = .SetOfReferences }, // Reference to REPRESENTATION_ITEM
+            .{ .name = "context_of_items", .type = .Reference }, // Reference to REPRESENTATION_CONTEXT
+        },
+    });
+
+    const ItemDefinedTransformation = EntityStruct("ItemDefinedTransformation", .{
+        .field_descriptions = &[_]EntityFieldDescription{
+            .{ .name = "name", .type = .String },
+            .{ .name = "description", .type = .String },
+            .{ .name = "transform_item_1", .type = .Reference }, // Reference to REPRESENTATION_ITEM
+            .{ .name = "transform_item_2", .type = .Reference }, // Reference to REPRESENTATION_ITEM
+        },
+    });
+
     const EntityType = enum {
         PRODUCT,
         PRODUCT_CONTEXT,
@@ -332,6 +349,8 @@ pub const StepData = struct {
         PRODUCT_DEFINITION_CONTEXT,
         PRODUCT_DEFINITION_SHAPE,
         MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION,
+        SHAPE_REPRESENTATION,
+        ITEM_DEFINED_TRANSFORMATION,
     };
 
     const EntityTypes = .{
@@ -342,6 +361,8 @@ pub const StepData = struct {
         ProductDefinitionContext,
         ProductDefinitionShape,
         MechanicalDesignGeometricPresentationRepresentation,
+        ShapeRepresentation,
+        ItemDefinedTransformation,
     };
 
     fn stepTypeToOurType(comptime entity_type: EntityType) type {
@@ -353,10 +374,13 @@ pub const StepData = struct {
             .PRODUCT_DEFINITION_CONTEXT => ProductDefinitionContext,
             .PRODUCT_DEFINITION_SHAPE => ProductDefinitionShape,
             .MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION => MechanicalDesignGeometricPresentationRepresentation,
+            .SHAPE_REPRESENTATION => ShapeRepresentation,
+            .ITEM_DEFINED_TRANSFORMATION => ItemDefinedTransformation,
         };
     }
 
     fn entityArrayFieldName(comptime entity_type: type) []const u8 {
+        @setEvalBranchQuota(3000);
         var full_type_name: []const u8 = @typeName(entity_type);
 
         var it = std.mem.splitScalar(u8, full_type_name, '\"');
