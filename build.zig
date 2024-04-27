@@ -55,6 +55,11 @@ pub fn build(b: *Builder) void {
         .enable_tracing = b.option(bool, "enable-tracing", "Enable tracing with tracy v0.8") orelse false,
         .panic_on_all_errors = b.option(bool, "panic-on-all-errors", "Panic on all errors") orelse false,
         .use_vulkan_sdk = b.option(bool, "vulkan-validation", "Use vulkan validation layer, useful for vulkan development. Needs Vulkan SDK") orelse false,
+        .font_options = .{
+            .regular = true,
+            .cyrilic = true,
+            .chinese_full = true,
+        },
     };
 
     var nyancoreLib = nyan_build.addStaticLibrary(b, lamia, "nyancore/", build_options);
